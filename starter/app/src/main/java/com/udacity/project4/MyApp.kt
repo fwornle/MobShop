@@ -24,14 +24,14 @@ class MyApp : Application() {
          * use Koin Library as a service locator
          */
         val myModule = module {
-            //Declare a ViewModel - be later inject into Fragment with dedicated injector using by viewModel()
+            // declare a ViewModel - be later inject into Fragment with dedicated injector using by viewModel()
             viewModel {
                 RemindersListViewModel(
                     get(),
                     get() as ReminderDataSource
                 )
             }
-            //Declare singleton definitions to be later injected using by inject()
+            // declare singleton definitions to be later injected using by inject()
             single {
                 //This view model is declared singleton to be used across multiple fragments
                 SaveReminderViewModel(
@@ -43,6 +43,8 @@ class MyApp : Application() {
             single { LocalDB.createRemindersDao(this@MyApp) }
         }
 
+        // instantiate viewModels, repos and DBs and inject them as services into consuming classes
+        // ... using KOIN framework (as "service locator"): https://insert-koin.io/
         startKoin {
             androidContext(this@MyApp)
             modules(listOf(myModule))

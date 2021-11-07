@@ -20,24 +20,33 @@ import com.udacity.project4.authentication.AuthenticationActivity
 
 
 class ReminderListFragment : BaseFragment() {
-    //use Koin to retrieve the ViewModel instance
+
+    // use Koin to retrieve the ViewModel instance
     override val _viewModel: RemindersListViewModel by viewModel()
+
+    // data binding for fragment_reminders.xml
     private lateinit var binding: FragmentRemindersBinding
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+
+        // bind layout class
         binding =
             DataBindingUtil.inflate(
                 inflater,
                 R.layout.fragment_reminders, container, false
             )
+
+        // set injected viewModel (from KOIN service provider)
         binding.viewModel = _viewModel
 
         setHasOptionsMenu(true)
         setDisplayHomeAsUpEnabled(false)
         setTitle(getString(R.string.app_name))
 
+        // install listener for SwipeRefreshLayout view
         binding.refreshLayout.setOnRefreshListener { _viewModel.loadReminders() }
 
         return binding.root
@@ -58,6 +67,7 @@ class ReminderListFragment : BaseFragment() {
         _viewModel.loadReminders()
     }
 
+    // FAB handler --> navigate to SaveReminder fragment
     private fun navigateToAddReminder() {
         //use the navigationCommand live data to navigate between the fragments
         _viewModel.navigationCommand.postValue(
@@ -88,9 +98,9 @@ class ReminderListFragment : BaseFragment() {
                         this.activity?.finish()
                     }
             }
-        }
-        return super.onOptionsItemSelected(item)
+        }  // when(item...)
 
+        return super.onOptionsItemSelected(item)
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
