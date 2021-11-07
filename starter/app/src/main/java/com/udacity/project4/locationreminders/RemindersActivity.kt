@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.MenuItem
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -19,7 +20,7 @@ import com.udacity.project4.databinding.ActivityRemindersBinding
  */
 class RemindersActivity : AppCompatActivity() {
 
-    // Contains all the views
+    // bind views
     private lateinit var binding: ActivityRemindersBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {

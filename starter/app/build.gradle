@@ -16,6 +16,9 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        // FirebaseUI includes language support for all languages --> limit to English
+        resConfigs "en"
     }
     buildTypes {
         release {
@@ -45,7 +48,15 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     // https://console.firebase.google.com/project/location-reminder-5a9b1/overview
-    implementation platform('com.google.firebase:firebase-bom:28.4.2')
+    //
+    // https://firebase.google.com/docs/android/setup
+    // When using the BoM, you don't specify versions in Firebase library dependencies
+    implementation platform("com.google.firebase:firebase-bom:$firebaseBomVersion")
+    implementation "com.google.firebase:firebase-common-ktx"
+
+    // use open source library firebaseui to simplify auth flows
+    implementation "com.firebaseui:firebase-ui-auth:$firebaseUiVersion"
+
 
     // App dependencies
     implementation "androidx.appcompat:appcompat:$appCompatVersion"
@@ -63,12 +74,11 @@ dependencies {
     // Navigation dependencies
     implementation "androidx.appcompat:appcompat:$appCompatVersion"
     implementation "androidx.constraintlayout:constraintlayout:$constraintVersion"
-    implementation "androidx.lifecycle:lifecycle-common-java8:$archLifecycleNewVersion"
+    implementation "androidx.lifecycle:lifecycle-common-java8:$archLifecycleVersion"
     //kapt "androidx.lifecycle:lifecycle-compiler:$archLifecycleVersion"
-    implementation "androidx.lifecycle:lifecycle-extensions:$archLifecycleVersion"
+    implementation "androidx.lifecycle:lifecycle-extensions:$archLifecycleOldVersion"
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$archLifecycleVersion"
-    implementation "androidx.lifecycle:lifecycle-extensions:$archLifecycleVersion"
-    implementation "androidx.lifecycle:lifecycle-livedata-ktx:$archLifecycleNewVersion"
+    implementation "androidx.lifecycle:lifecycle-livedata-ktx:$archLifecycleVersion"
     implementation "androidx.navigation:navigation-fragment-ktx:$navigationVersion"
     implementation "androidx.navigation:navigation-ui-ktx:$navigationVersion"
     implementation "androidx.test.espresso:espresso-idling-resource:$espressoVersion"
@@ -128,4 +138,8 @@ dependencies {
     //Maps & Geofencing
     implementation "com.google.android.gms:play-services-location:$playServicesLocationVersion"
     implementation "com.google.android.gms:play-services-maps:$playServicesMapsVersion"
+
+    // Timber (logging)
+    implementation "com.jakewharton.timber:timber:$timberVersion"
+
 }

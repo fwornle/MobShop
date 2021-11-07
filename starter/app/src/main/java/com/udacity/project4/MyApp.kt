@@ -10,11 +10,15 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
+import timber.log.Timber
 
 class MyApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // initialize Timber (logging) lib
+        Timber.plant(Timber.DebugTree())
 
         /**
          * use Koin Library as a service locator
@@ -35,7 +39,7 @@ class MyApp : Application() {
                     get() as ReminderDataSource
                 )
             }
-            single { RemindersLocalRepository(get()) as ReminderDataSource }
+            single { RemindersLocalRepository(get()) }
             single { LocalDB.createRemindersDao(this@MyApp) }
         }
 

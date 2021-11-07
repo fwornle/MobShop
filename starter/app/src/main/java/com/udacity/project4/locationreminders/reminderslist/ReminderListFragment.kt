@@ -11,6 +11,13 @@ import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import com.udacity.project4.utils.setTitle
 import com.udacity.project4.utils.setup
 import org.koin.androidx.viewmodel.ext.android.viewModel
+import android.content.Intent
+
+import com.google.android.gms.tasks.OnCompleteListener
+
+import com.firebase.ui.auth.AuthUI
+import com.udacity.project4.authentication.AuthenticationActivity
+
 
 class ReminderListFragment : BaseFragment() {
     //use Koin to retrieve the ViewModel instance
@@ -19,7 +26,7 @@ class ReminderListFragment : BaseFragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         binding =
             DataBindingUtil.inflate(
                 inflater,
@@ -64,14 +71,22 @@ class ReminderListFragment : BaseFragment() {
         val adapter = RemindersListAdapter {
         }
 
-//        setup the recycler view using the extension function
+        // setup the recycler view using the extension function
         binding.reminderssRecyclerView.setup(adapter)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.logout -> {
-//                TODO: add the logout implementation
+                // logout authenticated user
+                AuthUI.getInstance()
+                    .signOut(this.requireContext())
+                    .addOnCompleteListener {
+                        // user is now signed out -> redirect to login screen
+                        startActivity(Intent(this.context, AuthenticationActivity::class.java))
+                        // and we're done here
+                        this.activity?.finish()
+                    }
             }
         }
         return super.onOptionsItemSelected(item)
@@ -80,7 +95,7 @@ class ReminderListFragment : BaseFragment() {
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         super.onCreateOptionsMenu(menu, inflater)
-//        display logout as menu item
+        // display logout as menu item
         inflater.inflate(R.menu.main_menu, menu)
     }
 
