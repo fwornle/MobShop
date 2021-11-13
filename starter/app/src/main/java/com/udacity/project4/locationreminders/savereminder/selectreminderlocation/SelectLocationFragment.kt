@@ -26,6 +26,7 @@ import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import org.koin.android.ext.android.inject
 import timber.log.Timber
+import java.util.*
 
 
 // note: all three concrete viewModels (RemindersList, SaveReminders, SelectLocation) inherit from
@@ -78,6 +79,29 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         onLocationSelected()
 
         return binding.root
+    }
+
+    // handle long clicks (to identify locations for which we wanna define a reminder)
+    private fun setMapLongClick(map:GoogleMap) {
+        map.setOnMapLongClickListener { latLng ->
+
+            // define text to accompany the on-screen marker
+            val snippet = String.format(
+                Locale.getDefault(),
+                "Lat: %1$.5f, Long: %2$.5f",
+                latLng.latitude,
+                latLng.longitude
+            )
+
+            // now set the marker at the identified location
+            map.addMarker(
+                MarkerOptions()
+                    .position(latLng)
+                    .title(getString(R.string.dropped_pin))
+                    .snippet(snippet)
+            )
+        }
+
     }
 
     // request access to user location and, if granted, fly to current location
@@ -143,6 +167,9 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
         // apply styling
         setMapStyle(map)
+
+        // install long click listener
+        setMapLongClick(map)
 
         // activate permission checker - this
         permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
