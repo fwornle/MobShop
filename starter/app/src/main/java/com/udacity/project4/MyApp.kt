@@ -24,22 +24,62 @@ class MyApp : Application() {
          * use Koin Library as a service locator
          */
         val myModule = module {
-            // declare a ViewModel - be later inject into Fragment with dedicated injector using by viewModel()
+
+            // declare a ViewModel - to be injected into Fragment with dedicated injector using
+            // "by viewModel()"
+            //
+            // class RemindersListViewModel(
+            //    app: Application,
+            //    private val dataSource: ReminderDataSource
+            // ) : BaseViewModel(app) { ... }
             viewModel {
                 RemindersListViewModel(
-                    get(),
-                    get() as ReminderDataSource
+                    get(),  // app (context)
+                    get() as ReminderDataSource  // repo as data source
                 )
             }
-            // declare singleton definitions to be later injected using by inject()
+
+            // declare a ViewModel - to be injected into Fragment with standard injector using
+            // "by inject()"
+            // --> this view model is declared singleton to be used across multiple fragments
+            //
+            // class SaveReminderViewModel(
+            //    val app: Application,
+            //    val dataSource: ReminderDataSource
+            // ) : BaseViewModel(app) { ... }
             single {
-                //This view model is declared singleton to be used across multiple fragments
                 SaveReminderViewModel(
                     get(),
                     get() as ReminderDataSource
                 )
             }
+
+            // declare a (singleton) repository service with interface "ReminderDataSource"
+            // note: the repo needs the DAO of the room database (RemindersDao)
+            //       ... which is why it is declared (below) as singleton object and injected
+            //           using "get()" in the lambda of the declaration
+            //
+            // class RemindersLocalRepository(
+            //    private val remindersDao: RemindersDao,
+            //    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+            //) : ReminderDataSource { ... }
             single<ReminderDataSource> { RemindersLocalRepository(get()) }
+
+            // declare the local DB singleton object - used as data source for the repository
+            // note: LocalDB.createRemindersDao returns a DAO with interface RemindersDao
+            //       ... the DAO is needed by the repo (where it is injected, see "get()", above)
+            //
+            // object LocalDB {
+            //
+            //    /**
+            //     * static method that creates a reminder class and returns the DAO of the reminder
+            //     */
+            //    fun createRemindersDao(context: Context): RemindersDao {
+            //        return Room.databaseBuilder(
+            //            context.applicationContext,
+            //            RemindersDatabase::class.java, "locationReminders.db"
+            //        ).build().reminderDao()
+            //    }
             single { LocalDB.createRemindersDao(this@MyApp) }
         }
 
