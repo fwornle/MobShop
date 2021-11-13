@@ -3,6 +3,7 @@ package com.udacity.project4.locationreminders.savereminder.selectreminderlocati
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.content.res.Resources
 import android.location.Location
 import android.os.Bundle
 import android.view.*
@@ -24,6 +25,7 @@ import com.udacity.project4.databinding.FragmentSelectLocationBinding
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import org.koin.android.ext.android.inject
+import timber.log.Timber
 
 
 // note: all three concrete viewModels (RemindersList, SaveReminders, SelectLocation) inherit from
@@ -44,7 +46,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     private var userLatitude = 48.18158973840496
     private var userLongitude = 11.581632522306991
     private var zoomLevel = 12f
-
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -70,7 +71,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         // handling of user location
         handleUserLocationAccess()
 
-//        TODO: add style to the map
 //        TODO: put a marker to location that the user selected
 
 
@@ -112,11 +112,37 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
     }
 
+    // apply custom map styling
+    private fun setMapStyle(map: GoogleMap) {
+        try {
+            // Customize the styling of the base map using a JSON object defined
+            // in a raw resource file.
+            val success = map.setMapStyle(
+                MapStyleOptions.loadRawResourceStyle(
+                    requireContext(),
+                    R.raw.map_style
+                )
+            )
+
+            // provided JSON formatted correctly?
+            if (!success) {
+                // nope
+                Timber.i("Style parsing failed.")
+            }
+
+        } catch (e: Resources.NotFoundException) {
+            Timber.e("Can't find style. Error: ", e)
+        }
+    }
+
     // initialize map
     override fun onMapReady(googleMap: GoogleMap) {
 
         // fetch map instance
         map = googleMap
+
+        // apply styling
+        setMapStyle(map)
 
         // activate permission checker - this
         permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -179,7 +205,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         ) {
             // access to the user's location granted (at some level)
             // --> allow the app to use the user's location data
-            map.setMyLocationEnabled(true)
+            map.isMyLocationEnabled = true
 
             // install 'last location' listener to update user position variables
             fusedLocationClient.lastLocation
