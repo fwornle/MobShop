@@ -72,9 +72,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         // handling of user location
         handleUserLocationAccess()
 
-//        TODO: put a marker to location that the user selected
-
-
 //        TODO: call this function after the user confirms on the selected location
         onLocationSelected()
 
@@ -84,7 +81,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     // handle long clicks (to identify locations for which we wanna define a reminder)
     private fun setMapLongClick(map:GoogleMap) {
         map.setOnMapLongClickListener { latLng ->
-
             // define text to accompany the on-screen marker
             val snippet = String.format(
                 Locale.getDefault(),
@@ -101,8 +97,21 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
                     .snippet(snippet)
             )
         }
+    }  // setMapLongClick
 
-    }
+    // POI listener
+    private fun setPoiClick(map: GoogleMap) {
+        map.setOnPoiClickListener { poi ->
+            val poiMarker = map.addMarker(
+                MarkerOptions()
+                    .position(poi.latLng)
+                    .title(poi.name)
+            )
+
+            // show info about selected PI
+            poiMarker?.showInfoWindow()
+        }
+    }  // setPoiClick
 
     // request access to user location and, if granted, fly to current location
     // ... otherwise a default location is used instead
@@ -168,8 +177,9 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         // apply styling
         setMapStyle(map)
 
-        // install long click listener
+        // install long click listener and POI listener
         setMapLongClick(map)
+        setPoiClick(map)
 
         // activate permission checker - this
         permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
