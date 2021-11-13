@@ -7,6 +7,7 @@ import android.content.res.Resources
 import android.location.Location
 import android.os.Bundle
 import android.view.*
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,7 +22,9 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
+import com.udacity.project4.base.NavigationCommand
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
+import com.udacity.project4.locationreminders.reminderslist.ReminderListFragmentDirections
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import org.koin.android.ext.android.inject
@@ -48,6 +51,10 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     private var userLongitude = 11.581632522306991
     private var zoomLevel = 12f
 
+    // last pin dropped at...
+    private var lastMarker: Marker? = null
+
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -72,8 +79,26 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         // handling of user location
         handleUserLocationAccess()
 
-//        TODO: call this function after the user confirms on the selected location
-        onLocationSelected()
+        // install OK button listener
+        binding.btnOk.setOnClickListener {
+
+            // location selected... set viewModel variables and navigate back
+            onLocationSelected()
+
+        }
+
+        // install Cancel button listener
+        binding.btnCancel.setOnClickListener {
+
+            // remove last marker
+            lastMarker?.remove()
+            lastMarker = null
+
+            // no marker dropped - hide  OK/Cancel buttons
+            binding.btnOk.visibility = TextView.GONE
+            binding.btnCancel.visibility = TextView.GONE
+
+        }
 
         return binding.root
     }
@@ -81,6 +106,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     // handle long clicks (to identify locations for which we wanna define a reminder)
     private fun setMapLongClick(map:GoogleMap) {
         map.setOnMapLongClickListener { latLng ->
+
             // define text to accompany the on-screen marker
             val snippet = String.format(
                 Locale.getDefault(),
@@ -90,28 +116,47 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
             )
 
             // now set the marker at the identified location
-            map.addMarker(
+            val markerTitle = _viewModel.reminderTitle.value ?: getString(R.string.dropped_pin)
+            lastMarker = map.addMarker(
                 MarkerOptions()
                     .position(latLng)
-                    .title(getString(R.string.dropped_pin))
+                    //.title(getString(R.string.dropped_pin))
+                    .title(markerTitle)
                     .snippet(snippet)
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
             )
+
+            // show info about selected location
+            lastMarker?.showInfoWindow()
+
+            // marker dropped - reveal OK/Cancel buttons
+            binding.btnOk.visibility = TextView.VISIBLE
+            binding.btnCancel.visibility = TextView.VISIBLE
+
         }
     }  // setMapLongClick
 
     // POI listener
     private fun setPoiClick(map: GoogleMap) {
         map.setOnPoiClickListener { poi ->
-            val poiMarker = map.addMarker(
+
+            val markerTitle = _viewModel.reminderTitle.value?.let {
+                "${it} at ${poi.name}"
+            } ?: "Something happening at ${poi.name}"
+            lastMarker = map.addMarker(
                 MarkerOptions()
                     .position(poi.latLng)
-                    .title(poi.name)
+                    .title(markerTitle)
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN))
             )
 
-            // show info about selected PI
-            poiMarker?.showInfoWindow()
+            // show info about selected POI
+            lastMarker?.showInfoWindow()
+
+            // marker dropped - reveal OK/Cancel buttons
+            binding.btnOk.visibility = TextView.VISIBLE
+            binding.btnCancel.visibility = TextView.VISIBLE
+
         }
     }  // setPoiClick
 
@@ -197,6 +242,17 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         //        TODO: When the user confirms on the selected location,
         //         send back the selected location details to the view model
         //         and navigate back to the previous fragment to save the reminder and add the geofence
+
+        // store latitude / longitude in viewModel
+        _viewModel.latitude.value = lastMarker?.position?.latitude
+        _viewModel.latitude.value = lastMarker?.position?.longitude
+
+        // use the navigationCommand live data to navigate between the fragments
+        _viewModel.navigationCommand.postValue(
+            NavigationCommand.To(
+                SelectLocationFragmentDirections.actionSelectLocationFragmentToSaveReminderFragment()
+            )
+        )
     }
 
 

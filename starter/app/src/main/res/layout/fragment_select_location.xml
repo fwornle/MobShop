@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android">
+<layout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:map="http://schemas.android.com/apk/res-auto"
+    >
 
     <data>
 
@@ -12,12 +16,53 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <!-- map container -->
+        <!-- map container
+             could switch to cloud basded styling by adding:
+             map:mapId="@string/cloud_styling_basic_map_id"
+         -->
         <androidx.fragment.app.FragmentContainerView
             android:id="@+id/map"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:name="com.google.android.gms.maps.SupportMapFragment"
+            />
+
+        <TextView
+            android:id="@+id/btnOk"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_vertical_margin_large"
+            android:layout_gravity="center"
+            android:background="@color/primaryColor"
+            android:padding="10dp"
+            android:layout_marginBottom="16dp"
+            android:textColor="@color/white"
+            android:textSize="20sp"
+            android:text="@string/ok"
+            android:textAlignment="center"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btnCancel"
+            />
+
+        <TextView
+            android:id="@+id/btnCancel"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/activity_vertical_margin_large"
+            android:layout_gravity="center"
+            android:background="@color/primaryColor"
+            android:padding="10dp"
+            android:layout_marginBottom="16dp"
+            android:textColor="@color/white"
+            android:textSize="20sp"
+            android:text="@string/cancel"
+            android:textAlignment="center"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@id/btnOk"
+            app:layout_constraintEnd_toEndOf="parent"
             />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
