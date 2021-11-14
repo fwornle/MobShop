@@ -3,15 +3,17 @@ package com.udacity.project4.locationreminders.savereminder.selectreminderlocati
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.location.Location
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.view.*
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
@@ -23,6 +25,8 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
+import com.google.android.material.snackbar.Snackbar
+import com.udacity.project4.BuildConfig
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.base.NavigationCommand
@@ -33,7 +37,6 @@ import org.koin.android.ext.android.inject
 import timber.log.Timber
 import java.util.*
 
-
 // note: all three concrete viewModels (RemindersList, SaveReminders, SelectLocation) inherit from
 //       a common "base viewModel" (BaseViewModel)
 //       ... which defines the LiveData/Event elements shared by all three (derived) viewModels
@@ -43,9 +46,11 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     override val _viewModel: SaveReminderViewModel by inject()
     private lateinit var binding: FragmentSelectLocationBinding
 
+    // permissions (user location, background and foreground)
+    private lateinit var locationPermissionRequest: ActivityResultLauncher<Array<out String>>
+
     // map support
     private lateinit var map: GoogleMap
-    private lateinit var permissionLauncher: ActivityResultLauncher<String>
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
     // default user location: Café Cortadio, Schwabing, Munich, Germany
@@ -83,8 +88,13 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
             it.getMapAsync(this)
         }
 
-        // handling of user location
-        handleUserLocationAccess()
+        // handling of user location (foreground access - in map)
+        registerForegroundLocationAccessPermissionCheck()
+
+        // instantiate last know location client
+        // ... see: https://developer.android.com/training/location/retrieve-current
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
+
 
         // install OK button listener
         binding.btnOk.setOnClickListener {
@@ -132,6 +142,69 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
         // return inflated fragment view object
         return binding.root
+    }
+
+
+    // initialize map
+    override fun onMapReady(googleMap: GoogleMap) {
+
+        // fetch map instance
+        map = googleMap
+
+        // apply styling
+        setMapStyle(map)
+
+        // install long click listener and POI listener
+        setMapLongClick(map)
+        setPoiClick(map)
+
+        // trigger permission check for (foreground) access to location information
+        requestForegroundAccessToLocation()
+
+        // let's fly to a default location
+        val youAreHere = LatLng(userLatitude, userLongitude)
+        map.addMarker(MarkerOptions().position(youAreHere).title(getString(R.string.anonymous_place)))
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(youAreHere, zoomLevel))
+
+    }  // onMapReady
+
+
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.map_options, menu)
+    }
+
+
+    // user confirmation of selected location (on map)
+    // --> store lat/long in viewModel (location name/description set via data binding, see layout)
+    //     and navigate to previous fragment
+    private fun onLocationSelected() {
+
+        // store latitude / longitude in viewModel
+        _viewModel.latitude.value = lastMarker?.position?.latitude
+        _viewModel.longitude.value = lastMarker?.position?.longitude
+
+        // use the navigationCommand live data to navigate between the fragments
+        _viewModel.navigationCommand.value = NavigationCommand.Back
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
+        R.id.normal_map -> {
+            map.mapType = GoogleMap.MAP_TYPE_NORMAL
+            true
+        }
+        R.id.hybrid_map -> {
+            map.mapType = GoogleMap.MAP_TYPE_HYBRID
+            true
+        }
+        R.id.satellite_map -> {
+            map.mapType = GoogleMap.MAP_TYPE_SATELLITE
+            true
+        }
+        R.id.terrain_map -> {
+            map.mapType = GoogleMap.MAP_TYPE_TERRAIN
+            true
+        }
+        else -> super.onOptionsItemSelected(item)
     }
 
 
@@ -229,35 +302,52 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
     // request access to user location and, if granted, fly to current location
     // ... otherwise a default location is used instead
-    private fun handleUserLocationAccess() {
-
-        // instantiate last know location client
-        // ... see: https://developer.android.com/training/location/retrieve-current
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
+    //
+    // This is using Google Play services APIs
+    // ... see: https://developer.android.com/training/location/permissions
+    // For best practices about requesting permissions, see:
+    //     https://developer.android.com/training/permissions/requesting
+    private fun registerForegroundLocationAccessPermissionCheck() {
 
         // register handler (lambda) for permission launcher
         //
         // user location permission checker as recommended for fragments from androidx.fragment
-        // version 1.3.0 on (using 1.3.6). Motivated by...
+        // (= JetPack libraries), version 1.3.0 on (using 1.3.6). Motivated by...
         // https://developer.android.com/training/permissions/requesting#allow-system-manage-request-code
-        permissionLauncher = registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted ->
-            if (isGranted) {
-                // user has just granted the app access to their location (at FINE level)
-                // --> allow the app to use the user's location data
-                enableMyLocation()
-            } else {
-                // No permissions granted --> inform da user
-                Toast.makeText(
-                    context,
-                    "Suit yourself - not using your location then!",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
+        locationPermissionRequest = registerForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            when {
+                permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) &&
+                permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false) -> {
+                    // Foreground and background location access granted
+                    // --> allow for location tracking and use of the location for geoFencing
+                    enableMyLocation()
 
-    }
+                } else -> {
+                    // No (or insufficient) location access granted
+                    // --> inform user and send them to settings
+                    Snackbar.make(
+                        binding.clSelectLocationFragment,
+                        R.string.permission_denied_explanation,
+                        Snackbar.LENGTH_INDEFINITE
+                    ).setAction(R.string.settings) {
+                        startActivity(
+                            Intent().apply {
+                                action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                                data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                        )
+                    }.show()
+                }
+
+            }  // when (permissions)
+
+        }  // activityResult (lambda)
+
+    }  // handleForeGroundLocationAccess
+
 
     // apply custom map styling
     private fun setMapStyle(map: GoogleMap) {
@@ -282,66 +372,17 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         }
     }
 
-    // initialize map
-    override fun onMapReady(googleMap: GoogleMap) {
 
-        // fetch map instance
-        map = googleMap
-
-        // apply styling
-        setMapStyle(map)
-
-        // install long click listener and POI listener
-        setMapLongClick(map)
-        setPoiClick(map)
-
-        // activate permission checker - this
-        permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-
-        // let's fly to a default location
-        val youAreHere = LatLng(userLatitude, userLongitude)
-        map.addMarker(MarkerOptions().position(youAreHere).title(getString(R.string.anonymous_place)))
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(youAreHere, zoomLevel))
-
+    // trigger permission check for (foreground) access to location information
+    private fun requestForegroundAccessToLocation() {
+        locationPermissionRequest.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+            )
+        )
     }
 
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        inflater.inflate(R.menu.map_options, menu)
-    }
-
-
-    // user confirmation of selected location (on map)
-    // --> store lat/long in viewModel (location name/description set via data binding, see layout)
-    //     and navigate to previous fragment
-    private fun onLocationSelected() {
-
-        // store latitude / longitude in viewModel
-        _viewModel.latitude.value = lastMarker?.position?.latitude
-        _viewModel.longitude.value = lastMarker?.position?.longitude
-
-        // use the navigationCommand live data to navigate between the fragments
-        _viewModel.navigationCommand.value = NavigationCommand.Back
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
-        R.id.normal_map -> {
-            map.mapType = GoogleMap.MAP_TYPE_NORMAL
-            true
-        }
-        R.id.hybrid_map -> {
-            map.mapType = GoogleMap.MAP_TYPE_HYBRID
-            true
-        }
-        R.id.satellite_map -> {
-            map.mapType = GoogleMap.MAP_TYPE_SATELLITE
-            true
-        }
-        R.id.terrain_map -> {
-            map.mapType = GoogleMap.MAP_TYPE_TERRAIN
-            true
-        }
-        else -> super.onOptionsItemSelected(item)
-    }
 
     // check existing permissions and, if granted, enable access to the user's location
     // ... this is slightly elaborate, as we're only calling this, once the permissions have already

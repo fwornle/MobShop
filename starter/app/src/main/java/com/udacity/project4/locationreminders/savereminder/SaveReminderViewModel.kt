@@ -25,6 +25,12 @@ class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSo
     val latitude = MutableLiveData<Double?>()
     val longitude = MutableLiveData<Double?>()
 
+    // all required permissions given & location services active
+    // ... keeping this in the viewModel for now - as it relates to this fragment
+    //     (and the fragments 'below')
+    var appReadyForGeoFencing: Boolean = false
+
+
     /**
      * Clear the live data objects to start fresh next time the view model gets called
      */

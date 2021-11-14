@@ -38,8 +38,8 @@ task clean(type: Delete) {
 // Define versions in a single place
 ext {
     // Sdk and tools
-    // Support library and architecture components support minSdk 21 and above.
-    minSdkVersion = 21
+    // JetPack permission handling requireds API v24 and above.
+    minSdkVersion = 24
     targetSdkVersion = 31
     compileSdkVersion = 31
 
