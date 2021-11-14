@@ -2,12 +2,17 @@ package com.udacity.project4.locationreminders.savereminder.selectreminderlocati
 
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.location.Location
 import android.os.Bundle
 import android.view.*
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
 import android.widget.TextView
+import android.widget.TextView.OnEditorActionListener
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,12 +29,15 @@ import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.base.NavigationCommand
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
-import com.udacity.project4.locationreminders.reminderslist.ReminderListFragmentDirections
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import org.koin.android.ext.android.inject
 import timber.log.Timber
 import java.util.*
+import android.R.menu
+
+
+
 
 
 // note: all three concrete viewModels (RemindersList, SaveReminders, SelectLocation) inherit from
@@ -46,13 +54,18 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     private lateinit var permissionLauncher: ActivityResultLauncher<String>
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
-    // user location - default is: Café Cortadio, Schwabing, Munich, Germany
+    // default user location: Café Cortadio, Schwabing, Munich, Germany
     private var userLatitude = 48.18158973840496
     private var userLongitude = 11.581632522306991
     private var zoomLevel = 12f
 
-    // last pin dropped at...
+    // last marker data...
     private var lastMarker: Marker? = null
+    var lastMarkerTitle: String? = _viewModel.reminderTitle.value
+        ?: "Exciting..."  // default
+    var lastMarkerDescription: String? = _viewModel.reminderDescription.value
+        ?: "Something is happening"  // default
+    var lastMarkerLocation: String? = _viewModel.reminderSelectedLocationStr.value
 
 
     override fun onCreateView(
@@ -92,46 +105,72 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
             // remove last marker
             lastMarker?.remove()
-            lastMarker = null
 
-            // no marker dropped - hide  OK/Cancel buttons
-            binding.btnOk.visibility = TextView.GONE
-            binding.btnCancel.visibility = TextView.GONE
+            // no marker dropped - hide  OK/Cancel buttons & edit text box
+            hideUiControls()
 
         }
 
+        // install Edit text box handler (to close soft keyboard upon enter)
+        // ... see: https://android--code.blogspot.com/2020/08/android-kotlin-edittext-hide-keyboard_28.html
+        //
+        // define listener for keystrokes in the edit text box (trying to catch ENTER / ESC)
+        //
+        // Note:
+        // ESC key appears to not get forwarded on the Android emulator --> only works on
+        // real devices, see: answer to https://stackoverflow.com/questions/48202883/recognising-escape-key
+        val keyListener = View.OnKeyListener { etView, keyCode, event ->
+            if (event.action == KeyEvent.ACTION_DOWN && (
+                        keyCode == KeyEvent.KEYCODE_ENTER ||
+                        keyCode == KeyEvent.KEYCODE_ESCAPE
+                    )
+                ) {
+                // hide virtual keyboard
+                closeSoftKeyboard(requireContext(), etView)
+                true
+            } else {
+                false
+            }
+        }
+
+        // install keyListener
+        binding.etLocationName.setOnKeyListener(keyListener)
+
+        // return inflated fragment view object
         return binding.root
     }
+
 
     // handle long clicks (to identify locations for which we wanna define a reminder)
     private fun setMapLongClick(map:GoogleMap) {
         map.setOnMapLongClickListener { latLng ->
 
-            // define text to accompany the on-screen marker
-            val snippet = String.format(
+            // remove previous marker - there shall be only one
+            deleteLastMarker()
+
+            // location defined by lat/long
+            lastMarkerLocation = String.format(
                 Locale.getDefault(),
-                "Lat: %1$.5f, Long: %2$.5f",
+                getString(R.string.lat_long_snippet),
                 latLng.latitude,
                 latLng.longitude
             )
 
             // now set the marker at the identified location
-            val markerTitle = _viewModel.reminderTitle.value ?: getString(R.string.dropped_pin)
             lastMarker = map.addMarker(
                 MarkerOptions()
                     .position(latLng)
                     //.title(getString(R.string.dropped_pin))
-                    .title(markerTitle)
-                    .snippet(snippet)
+                    .title(lastMarkerTitle)
+                    .snippet("${lastMarkerDescription} (at ${lastMarkerLocation})")
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
             )
 
             // show info about selected location
             lastMarker?.showInfoWindow()
 
-            // marker dropped - reveal OK/Cancel buttons
-            binding.btnOk.visibility = TextView.VISIBLE
-            binding.btnCancel.visibility = TextView.VISIBLE
+            // display OK/Cancel buttons and edit text box (location name)
+            activateUiControls()
 
         }
     }  // setMapLongClick
@@ -140,25 +179,55 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     private fun setPoiClick(map: GoogleMap) {
         map.setOnPoiClickListener { poi ->
 
-            val markerTitle = _viewModel.reminderTitle.value?.let {
-                "${it} at ${poi.name}"
-            } ?: "Something happening at ${poi.name}"
+            // remove previous marker - there shall be only one
+            deleteLastMarker()
+
+            // set marker at POI
             lastMarker = map.addMarker(
                 MarkerOptions()
                     .position(poi.latLng)
-                    .title(markerTitle)
+                    .title(lastMarkerTitle)
+                    .snippet("${lastMarkerDescription} (at ${poi.name})")
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN))
             )
 
             // show info about selected POI
             lastMarker?.showInfoWindow()
 
-            // marker dropped - reveal OK/Cancel buttons
-            binding.btnOk.visibility = TextView.VISIBLE
-            binding.btnCancel.visibility = TextView.VISIBLE
+            // display OK/Cancel buttons and edit text box (location name)
+            activateUiControls()
 
         }
     }  // setPoiClick
+
+    // display OK/Cancel buttons and edit text box (location name)
+    private fun activateUiControls() {
+        // marker dropped - reveal OK/Cancel buttons and Name edit textbox
+        binding.etLocationName.visibility = EditText.VISIBLE
+        binding.btnOk.visibility = TextView.VISIBLE
+        binding.btnCancel.visibility = TextView.VISIBLE
+
+        // set focus to edit text box
+        openSoftKeyboard(requireContext(), binding.etLocationName)
+    }
+
+    // hide OK/Cancel buttons and edit text box (location name)
+    private fun hideUiControls() {
+        // marker dropped - reveal OK/Cancel buttons and Name edit textbox
+        binding.etLocationName.visibility = EditText.GONE
+        binding.btnOk.visibility = TextView.GONE
+        binding.btnCancel.visibility = TextView.GONE
+
+        // set focus to edit text box
+        closeSoftKeyboard(requireContext(), binding.etLocationName)
+    }
+
+    // remove latest set marker and clear associated viewModel variables (coords only - keep name)
+    private fun deleteLastMarker() {
+        lastMarker?.remove()
+        _viewModel.latitude.value = null
+        _viewModel.longitude.value = null
+    }
 
     // request access to user location and, if granted, fly to current location
     // ... otherwise a default location is used instead
@@ -245,7 +314,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
         // store latitude / longitude in viewModel
         _viewModel.latitude.value = lastMarker?.position?.latitude
-        _viewModel.latitude.value = lastMarker?.position?.longitude
+        _viewModel.longitude.value = lastMarker?.position?.longitude
 
         // use the navigationCommand live data to navigate between the fragments
         _viewModel.navigationCommand.postValue(
@@ -329,5 +398,23 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         }  // permissions checked
 
     }  // enableMyLocation
+
+
+    // programmatically open keyboard to allow focus on EditText box to be set automatically
+    // ... see: https://stackoverflow.com/questions/50743467/focus-edit-text-programmatically-kotlin
+    private fun openSoftKeyboard(context: Context, view: View) {
+        view.requestFocus()
+        // open the soft keyboard
+        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    // programmatically close keyboard
+    // ... see: https://stackoverflow.com/questions/1109022/how-do-you-close-hide-the-android-soft-keyboard-programmatically
+    private fun closeSoftKeyboard(context: Context, view: View) {
+        // close the soft keyboard
+        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(view.getWindowToken(), 0)
+    }
 
 }
