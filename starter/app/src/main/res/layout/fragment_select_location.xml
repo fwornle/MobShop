@@ -27,43 +27,58 @@
             android:name="com.google.android.gms.maps.SupportMapFragment"
             />
 
+        <!-- ask for the name of the location -->
+        <EditText
+            android:id="@+id/etLocationName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="32dp"
+            android:layout_marginEnd="32dp"
+            android:layout_marginBottom="16dp"
+            android:autofillHints="@string/location_name"
+            android:selectAllOnFocus="true"
+            android:hint="@string/location_name"
+            android:inputType="textCapSentences|textAutoCorrect"
+            android:text="@={viewModel.reminderSelectedLocationStr}"
+            android:imeOptions="actionDone"
+            android:visibility="gone"
+            app:layout_constraintBottom_toTopOf="@+id/btnOk"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
         <TextView
             android:id="@+id/btnOk"
             android:layout_width="100dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/activity_vertical_margin_large"
             android:layout_gravity="center"
+            android:layout_marginBottom="16dp"
             android:background="@color/primaryColor"
             android:padding="10dp"
-            android:layout_marginBottom="16dp"
-            android:textColor="@color/white"
-            android:textSize="20sp"
             android:text="@string/ok"
             android:textAlignment="center"
+            android:textColor="@color/white"
+            android:textSize="20sp"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@id/btnCancel"
-            />
+            app:layout_constraintStart_toStartOf="parent" />
 
         <TextView
             android:id="@+id/btnCancel"
             android:layout_width="100dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/activity_vertical_margin_large"
             android:layout_gravity="center"
+            android:layout_marginBottom="16dp"
             android:background="@color/primaryColor"
             android:padding="10dp"
-            android:layout_marginBottom="16dp"
-            android:textColor="@color/white"
-            android:textSize="20sp"
             android:text="@string/cancel"
             android:textAlignment="center"
+            android:textColor="@color/white"
+            android:textSize="20sp"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toEndOf="@id/btnOk"
             app:layout_constraintEnd_toEndOf="parent"
-            />
+            app:layout_constraintStart_toEndOf="@id/btnOk" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
