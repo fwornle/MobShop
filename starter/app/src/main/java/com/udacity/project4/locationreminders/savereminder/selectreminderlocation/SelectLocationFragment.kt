@@ -189,13 +189,17 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
             lastMarker?.showInfoWindow()
 
             // display OK/Cancel buttons and edit text box (location name)
-            activateUiControls()
+            activateUiControls(poi.name)
 
         }
     }  // setPoiClick
 
     // display OK/Cancel buttons and edit text box (location name)
-    private fun activateUiControls() {
+    private fun activateUiControls(location: String? = null) {
+
+        // set location string, if provided (POI)
+        location?.let { _viewModel.reminderSelectedLocationStr.value = it }
+
         // marker dropped - reveal OK/Cancel buttons and Name edit textbox
         binding.etLocationName.visibility = EditText.VISIBLE
         binding.btnOk.visibility = TextView.VISIBLE
