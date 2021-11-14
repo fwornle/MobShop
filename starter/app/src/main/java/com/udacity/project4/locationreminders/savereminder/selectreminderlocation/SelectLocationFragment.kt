@@ -8,11 +8,9 @@ import android.content.res.Resources
 import android.location.Location
 import android.os.Bundle
 import android.view.*
-import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.TextView
-import android.widget.TextView.OnEditorActionListener
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -34,10 +32,6 @@ import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import org.koin.android.ext.android.inject
 import timber.log.Timber
 import java.util.*
-import android.R.menu
-
-
-
 
 
 // note: all three concrete viewModels (RemindersList, SaveReminders, SelectLocation) inherit from
@@ -61,11 +55,11 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
     // last marker data...
     private var lastMarker: Marker? = null
-    var lastMarkerTitle: String? = _viewModel.reminderTitle.value
+    private var lastMarkerTitle: String? = _viewModel.reminderTitle.value
         ?: "Exciting..."  // default
-    var lastMarkerDescription: String? = _viewModel.reminderDescription.value
+    private var lastMarkerDescription: String? = _viewModel.reminderDescription.value
         ?: "Something is happening"  // default
-    var lastMarkerLocation: String? = _viewModel.reminderSelectedLocationStr.value
+    private var lastMarkerLocation: String? = _viewModel.reminderSelectedLocationStr.value
 
 
     override fun onCreateView(
@@ -162,7 +156,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
                     .position(latLng)
                     //.title(getString(R.string.dropped_pin))
                     .title(lastMarkerTitle)
-                    .snippet("${lastMarkerDescription} (at ${lastMarkerLocation})")
+                    .snippet("$lastMarkerDescription (at $lastMarkerLocation)")
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
             )
 
@@ -187,7 +181,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
                 MarkerOptions()
                     .position(poi.latLng)
                     .title(lastMarkerTitle)
-                    .snippet("${lastMarkerDescription} (at ${poi.name})")
+                    .snippet("$lastMarkerDescription (at ${poi.name})")
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN))
             )
 
@@ -302,31 +296,27 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
         // let's fly to a default location
         val youAreHere = LatLng(userLatitude, userLongitude)
-        map.addMarker(MarkerOptions().position(youAreHere).title("A nice place"))
+        map.addMarker(MarkerOptions().position(youAreHere).title(getString(R.string.anonymous_place)))
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(youAreHere, zoomLevel))
 
     }
 
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.map_options, menu)
+    }
+
+
+    // user confirmation of selected location (on map)
+    // --> store lat/long in viewModel (location name/description set via data binding, see layout)
+    //     and navigate to previous fragment
     private fun onLocationSelected() {
-        //        TODO: When the user confirms on the selected location,
-        //         send back the selected location details to the view model
-        //         and navigate back to the previous fragment to save the reminder and add the geofence
 
         // store latitude / longitude in viewModel
         _viewModel.latitude.value = lastMarker?.position?.latitude
         _viewModel.longitude.value = lastMarker?.position?.longitude
 
         // use the navigationCommand live data to navigate between the fragments
-        _viewModel.navigationCommand.postValue(
-            NavigationCommand.To(
-                SelectLocationFragmentDirections.actionSelectLocationFragmentToSaveReminderFragment()
-            )
-        )
-    }
-
-
-    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        inflater.inflate(R.menu.map_options, menu)
+        _viewModel.navigationCommand.value = NavigationCommand.Back
     }
 
     override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
@@ -414,7 +404,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     private fun closeSoftKeyboard(context: Context, view: View) {
         // close the soft keyboard
         val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.hideSoftInputFromWindow(view.getWindowToken(), 0)
+        imm.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
 }
