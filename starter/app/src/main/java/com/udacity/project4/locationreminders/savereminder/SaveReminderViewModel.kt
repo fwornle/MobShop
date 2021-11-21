@@ -3,7 +3,6 @@ package com.udacity.project4.locationreminders.savereminder
 import android.app.Application
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.google.android.gms.maps.model.PointOfInterest
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseViewModel
 import com.udacity.project4.base.NavigationCommand
@@ -15,21 +14,14 @@ import kotlinx.coroutines.launch
 // note: all three concrete viewModels (RemindersList, SaveReminders, SelectLocation) inherit from
 //       a common "base viewModel" (BaseViewModel)
 //       ... which defines the LiveData/Event elements shared by all three (derived) viewModels
-class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSource) :
+class SaveReminderViewModel(val app: Application, private val dataSource: ReminderDataSource) :
     BaseViewModel(app) {
 
     val reminderTitle = MutableLiveData<String?>()
     val reminderDescription = MutableLiveData<String?>()
     val reminderSelectedLocationStr = MutableLiveData<String?>()
-    val selectedPOI = MutableLiveData<PointOfInterest?>()
     val latitude = MutableLiveData<Double?>()
     val longitude = MutableLiveData<Double?>()
-
-    // all required permissions given & location services active
-    // ... keeping this in the viewModel for now - as it relates to this fragment
-    //     (and the fragments 'below')
-    var appReadyForGeoFencing: Boolean = false
-
 
     /**
      * Clear the live data objects to start fresh next time the view model gets called
@@ -38,18 +30,8 @@ class SaveReminderViewModel(val app: Application, val dataSource: ReminderDataSo
         reminderTitle.value = null
         reminderDescription.value = null
         reminderSelectedLocationStr.value = null
-        selectedPOI.value = null
         latitude.value = null
         longitude.value = null
-    }
-
-    /**
-     * Validate the entered data then saves the reminder data to the DataSource
-     */
-    fun validateAndSaveReminder(reminderData: ReminderDataItem) {
-        if (validateEnteredData(reminderData)) {
-            saveReminder(reminderData)
-        }
     }
 
     /**
