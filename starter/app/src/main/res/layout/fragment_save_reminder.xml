@@ -11,6 +11,7 @@
             type="com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel" />
     </data>
 
+    <!-- background color is set according to permissions status (location / geoFencing) -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/clSaveReminderFragment"
         android:layout_width="match_parent"

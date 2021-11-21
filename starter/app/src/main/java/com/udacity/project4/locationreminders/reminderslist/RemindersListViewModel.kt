@@ -7,6 +7,8 @@ import com.udacity.project4.base.BaseViewModel
 import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.data.dto.Result
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
 class RemindersListViewModel(
@@ -50,6 +52,7 @@ class RemindersListViewModel(
             invalidateShowNoData()
         }
     }
+
 
     /**
      * Inform the user that there's not any data if the remindersList is empty
