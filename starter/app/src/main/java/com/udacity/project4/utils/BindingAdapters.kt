@@ -1,9 +1,13 @@
 package com.udacity.project4.utils
 
 import android.view.View
+import android.widget.ImageView
+import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.getColor
 import androidx.databinding.BindingAdapter
 import androidx.lifecycle.LiveData
 import androidx.recyclerview.widget.RecyclerView
+import com.udacity.project4.R
 import com.udacity.project4.base.BaseRecyclerViewAdapter
 
 
@@ -44,4 +48,5 @@ object BindingAdapters {
             }
         }
     }
+
 }
