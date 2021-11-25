@@ -45,6 +45,9 @@ class SaveReminderFragment : BaseFragment() {
     // geoFencing
     private lateinit var geofencingClient: GeofencingClient
 
+    // assemble reminder data item - this creates the ID we can use as geoFence ID
+    lateinit var daReminder: ReminderDataItem
+
 
     // A PendingIntent for the Broadcast Receiver that handles geofence transitions.
     private val geofencePendingIntent: PendingIntent by lazy {
@@ -95,37 +98,25 @@ class SaveReminderFragment : BaseFragment() {
 
         // clicking on the 'saveReminder' FAB...
         // ... installs the geofencing request and triggers the saving to DB
-
         binding.saveReminder.setOnClickListener {
 
-            val title = _viewModel.reminderTitle.value
-            val description = _viewModel.reminderDescription.value
-            val location = _viewModel.reminderSelectedLocationStr.value
-            val latitude = _viewModel.latitude.value
-            val longitude = _viewModel.longitude.value
-
-            // assemble reminder data item - this creates the ID we can use as geoFence ID
-            val daReminder = ReminderDataItem(
-                title,
-                description,
-                location,
-                latitude,
-                longitude
+            // initialize data record to be written to DB
+            daReminder = ReminderDataItem(
+                _viewModel.reminderTitle.value ?: "mystery",
+                _viewModel.reminderDescription.value ?: "something happening here",
+                _viewModel.reminderSelectedLocationStr.value ?: "mystery location",
+                _viewModel.latitude.value ?: -1.0,
+                _viewModel.longitude.value ?: -1.0,
             )
 
             // ask for permission to access location information when the app is in the background
-            // (needed for GeoFencing)
-            checkPermissionsAndAddGeofencingRequest(
-                daReminder.id,
-                location ?: "mystery location",
-                latitude!!,     // safe - if location is defined (via map), we have lat and long
-                longitude!!     // safe - if location is defined (via map), we have lat and long
-            )
+            // locationPermissionRequest.launch(locationPermission)
+            checkPermissionsAndAddGeofencingRequest(daReminder)
 
             // store reminder in DB
             _viewModel.saveReminder(daReminder)
 
-        }
+        }  // onClickListener (FAB - save)
 
     }  // onViewCreated
 
@@ -161,26 +152,22 @@ class SaveReminderFragment : BaseFragment() {
         locationPermissionRequest = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { isGranted ->
+
+            // inform about the result of (now decided) permission check
             when {
                 isGranted -> {
 
                     // background access to location granted --> needed for geoFencing
                     Timber.i("Background access to location granted (needed for geoFencing).")
 
+                    // set geoFence - reminder data is pre-initialized
+                    checkPermissionsAndAddGeofencingRequest(daReminder)
+
                 } else -> {
 
-                    // No background access to location information granted
-                    // --> request required permissions again, after explanation
-                    Snackbar.make(
-                        binding.clSaveReminderFragment,
-                        R.string.permission_denied_explanation,
-                        Snackbar.LENGTH_INDEFINITE
-                    ).setAction(R.string.settings) {
-
-                        // ... we really need those permissions... --> insist :)
-                        locationPermissionRequest.launch(locationPermission)
-
-                    }.show()
+                    // No background access to location information granted --> explain consequence
+                    _viewModel.showToast.value =
+                        "Note: geofencing disabled (needs background access to location info)."
 
                 }  // else: background access to location information not granted
 
@@ -192,11 +179,15 @@ class SaveReminderFragment : BaseFragment() {
 
 
     // check permissions which are needed for GeoFencing - if not already given, request permission
+    //
+    // - flag 'askUserIfNeeded' : is used to stop the recursion after having asked the user for
+    //                            permission once
+    // - ret value ('state')    : true if user has JUST been asked for permissions, false otherwise
+    //
+    // suspendable, as we want to wait for the user decision on granting permissions or not
+    // --> do this off the UI thread
     private fun checkPermissionsAndAddGeofencingRequest(
-        locId: String,
-        locationName: String,
-        locLatitude: Double,
-        locLongitude: Double,
+        reminder: ReminderDataItem
     ) {
 
         // check permission status
@@ -206,19 +197,20 @@ class SaveReminderFragment : BaseFragment() {
                 locationPermission
             ) -> {
 
-                // required permission already granted --> add geoFencing request to location
+                // permission has been granted --> add geoFencing request to location
                 Timber.i("Access to BACKGROUND location granted --> add geoFencing request")
 
                 // define geoFence perimeter in geoFencing object
                 val geoFenceObj = Geofence.Builder()
 
                     // Set the request ID of the geofence - use location name as ID (string)
-                    .setRequestId(locId)
+                    .setRequestId(reminder.id)
 
                     // Set the circular region of this geofence
+                    // ... safe args (!!) OK, as reminder is pre-initialized in calling function
                     .setCircularRegion(
-                        locLatitude,
-                        locLongitude,
+                        reminder.latitude!!,
+                        reminder.longitude!!,
                         GEOFENCE_RADIUS_IN_METERS
                     )
 
@@ -244,7 +236,8 @@ class SaveReminderFragment : BaseFragment() {
                 geofencingClient.addGeofences(geoFencingRequest, geofencePendingIntent).run {
                     addOnSuccessListener {
                         // Geofences added
-                        _viewModel.showToast.value = "GeoFence added for reminder location $locationName"
+                        _viewModel.showToast.value =
+                            "GeoFence added for reminder location ${reminder.location}"
                     }
                     addOnFailureListener {
                         // Failed to add geofences
@@ -256,24 +249,29 @@ class SaveReminderFragment : BaseFragment() {
             }
             else -> {
 
-                // permission not yet granted --> request permission...
-                // ... after providing an explanation
-                Snackbar.make(
-                    binding.clSaveReminderFragment,
-                    R.string.permission_denied_explanation,
-                    Snackbar.LENGTH_INDEFINITE
-                ).setAction(R.string.settings) {
+                // ask for permission... after having provided an explanation as to why
+                getBackgroundAccessLocationPermission()
 
-                    // ... we really need those permissions... --> insist :)
-                    locationPermissionRequest.launch(locationPermission)
-
-                }.show()
-
-            }
+            }  // else-branch in when
 
         }  // when
 
-    }  // enableGeoFencing()
+    }  // checkPermissionsAndAddGeofencingRequest()
+
+
+    // inform user and trigger background access to location permission request dialog
+    private fun getBackgroundAccessLocationPermission() {
+        Snackbar.make(
+            binding.clSaveReminderFragment,
+            R.string.permission_denied_explanation,
+            Snackbar.LENGTH_INDEFINITE
+        ).setAction(R.string.settings) {
+
+            // ask for permission
+            locationPermissionRequest.launch(locationPermission)
+
+        }.show()
+    }
 
 
     // define internally used constants (PendingIntent ID)

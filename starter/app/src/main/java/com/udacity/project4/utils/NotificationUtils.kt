@@ -31,7 +31,7 @@ fun sendNotification(context: Context, reminderDataItem: ReminderDataItem) {
         notificationManager.createNotificationChannel(channel)
     }
 
-    // create intent which starts activity ReminderDescriptionActivity, with extra data
+    // create intent which starts activity ReminderDescriptionActivity, with extra data 
     // 'reminderDataItem'
     val intent = ReminderDescriptionActivity.newIntent(context.applicationContext, reminderDataItem)
 
@@ -49,6 +49,7 @@ fun sendNotification(context: Context, reminderDataItem: ReminderDataItem) {
         .setContentText(reminderDataItem.location)
         .setContentIntent(notificationPendingIntent)
         .setAutoCancel(true)
+        //.setPriority(NotificationCompat.PRIORITY_HIGH)
         .build()
 
     notificationManager.notify(getUniqueId(), notification)
