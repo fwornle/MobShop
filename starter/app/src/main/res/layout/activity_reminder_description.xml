@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android"
+<layout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools">
 
@@ -10,24 +11,234 @@
             type="com.udacity.project4.locationreminders.reminderslist.ReminderDataItem" />
     </data>
 
-    <LinearLayout
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/clReminderDetails"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:orientation="vertical"
-        tools:context=".locationreminders.ReminderDescriptionActivity">
-        <!--TODO: add the design of the reminder details-->
+        android:layout_marginTop="@dimen/vertical_margin_huge"
+        android:layout_height="wrap_content"
+        >
 
         <TextView
+            android:id="@+id/tvHeading"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:text="Reminder Details"
+            android:text="@string/reminder_details"
             android:textSize="@dimen/text_size_large"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/ivMap"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent"
+            />
 
-    </LinearLayout>
+        <ImageView
+            android:id="@+id/ivMap"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/image_header_height"
+            android:layout_marginTop="@dimen/vertical_margin_image"
+            android:layout_marginBottom="@dimen/vertical_margin_image"
+            android:layout_marginStart="@dimen/horizontal_margin_small"
+            android:layout_marginEnd="@dimen/horizontal_margin_small"
+            android:contentDescription="@string/map"
+            android:scaleType="fitCenter"
+            app:layout_constraintTop_toTopOf="@id/tvHeading"
+            app:layout_constraintBottom_toTopOf="@+id/clTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="1.0"
+            app:srcCompat="@drawable/map" />
+
+
+        <!-- row: title -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/clTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/ivMap"
+            app:layout_constraintBottom_toTopOf="@+id/clDescription"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            >
+
+            <!-- invisible TV for alignment of label and edit text field -->
+            <TextView
+                android:id="@+id/tvAnchorTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/horizontal_margin_anchor_login"
+                android:text="@string/anchor_char"
+                android:textSize="@dimen/invisible_gap_details"
+                android:visibility="invisible"
+                app:layout_constraintHorizontal_weight="0.1"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                />
+
+
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/horizontal_margin_small"
+                android:layout_marginEnd="@dimen/horizontal_margin_small"
+                android:text="@string/title"
+                android:textSize="@dimen/label_text_size"
+                app:layout_constraintBaseline_toBaselineOf="@id/tvAnchorTitle"
+                app:layout_constraintEnd_toStartOf="@+id/tvAnchorTitle"
+                app:layout_constraintHorizontal_weight="0.2"
+                tools:labelFor="@id/tvTitleText" />
+
+            <TextView
+                android:id="@+id/tvTitleText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/horizontal_margin_small"
+                android:layout_marginEnd="@dimen/horizontal_margin_huge"
+                android:text="@{reminderDataItem.title}"
+                android:textSize="@dimen/label_text_size"
+                app:layout_constraintBaseline_toBaselineOf="@id/tvAnchorTitle"
+                app:layout_constraintStart_toEndOf="@+id/tvAnchorTitle"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_weight="0.7"
+                />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+        <!-- row: Description -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/clDescription"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/clTitle"
+            app:layout_constraintBottom_toTopOf="@+id/clLocation"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            >
+
+            <!-- invisible TV for alignment of label and edit text field -->
+            <TextView
+                android:id="@+id/tvAnchorDesc"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/horizontal_margin_anchor_login"
+                android:text="@string/anchor_char"
+                android:textSize="@dimen/invisible_gap_details"
+                android:visibility="invisible"
+                app:layout_constraintHorizontal_weight="0.1"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                />
+
+
+            <TextView
+                android:id="@+id/tvDesc"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/horizontal_margin_small"
+                android:layout_marginEnd="@dimen/horizontal_margin_small"
+                android:text="@string/description"
+                android:textSize="@dimen/label_text_size"
+                app:layout_constraintBaseline_toBaselineOf="@id/tvAnchorDesc"
+                app:layout_constraintEnd_toStartOf="@+id/tvAnchorDesc"
+                app:layout_constraintHorizontal_weight="0.2"
+                tools:labelFor="@id/tvTitleText" />
+
+            <TextView
+                android:id="@+id/tvDescText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/horizontal_margin_small"
+                android:layout_marginEnd="@dimen/horizontal_margin_huge"
+                android:text="@{reminderDataItem.description}"
+                android:textSize="@dimen/label_text_size"
+                app:layout_constraintBaseline_toBaselineOf="@id/tvAnchorDesc"
+                app:layout_constraintStart_toEndOf="@+id/tvAnchorDesc"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_weight="0.7"
+                />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+        <!-- row: Location -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/clLocation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/clDescription"
+            app:layout_constraintBottom_toTopOf="@+id/btDismiss"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            >
+
+            <!-- invisible TV for alignment of label and edit text field -->
+            <TextView
+                android:id="@+id/tvAnchorLoc"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/horizontal_margin_anchor_login"
+                android:text="@string/anchor_char"
+                android:textSize="@dimen/invisible_gap_details"
+                android:visibility="invisible"
+                app:layout_constraintHorizontal_weight="0.1"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                />
+
+
+            <TextView
+                android:id="@+id/tvLoc"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/horizontal_margin_small"
+                android:layout_marginEnd="@dimen/horizontal_margin_small"
+                android:text="@string/location"
+                android:textSize="@dimen/label_text_size"
+                app:layout_constraintBaseline_toBaselineOf="@id/tvAnchorLoc"
+                app:layout_constraintEnd_toStartOf="@+id/tvAnchorLoc"
+                app:layout_constraintHorizontal_weight="0.2"
+                tools:labelFor="@id/tvTitleText" />
+
+            <TextView
+                android:id="@+id/tvLocText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/horizontal_margin_small"
+                android:layout_marginEnd="@dimen/horizontal_margin_huge"
+                android:text="@{reminderDataItem.location}"
+                android:textSize="@dimen/label_text_size"
+                app:layout_constraintBaseline_toBaselineOf="@id/tvAnchorLoc"
+                app:layout_constraintStart_toEndOf="@+id/tvAnchorLoc"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_weight="0.7"
+                />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <Button
+            android:id="@+id/btDismiss"
+            android:layout_width="@dimen/button_width"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/vertical_margin_huge"
+            android:layout_marginBottom="@dimen/vertical_margin_large"
+            android:layout_marginStart="@dimen/horizontal_margin_small"
+            android:paddingStart="@dimen/button_padding"
+            android:paddingEnd="@dimen/button_padding"
+            android:text="@string/dismiss"
+            android:textColor="@color/colorAccent"
+            android:textSize="@dimen/button_text_size"
+            android:textStyle="bold"
+            app:layout_constraintTop_toBottomOf="@+id/clLocation"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
 </layout>

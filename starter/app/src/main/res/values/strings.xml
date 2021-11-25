@@ -70,4 +70,13 @@
     <!-- buttons -->
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
+    <string name="reminder_details">Reminder Details</string>
+    <string name="map">map</string>
+
+    <string name="anchor_char">x</string>
+    <string name="title">Title:</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="description">Description</string>
+    <string name="location">Location</string>
+
 </resources>
