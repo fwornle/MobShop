@@ -46,7 +46,7 @@ class SaveReminderFragment : BaseFragment() {
     private lateinit var geofencingClient: GeofencingClient
 
     // assemble reminder data item - this creates the ID we can use as geoFence ID
-    lateinit var daReminder: ReminderDataItem
+    private lateinit var daReminder: ReminderDataItem
 
 
     // A PendingIntent for the Broadcast Receiver that handles geofence transitions.
@@ -110,11 +110,9 @@ class SaveReminderFragment : BaseFragment() {
             )
 
             // ask for permission to access location information when the app is in the background
-            // locationPermissionRequest.launch(locationPermission)
+            // ... saving of the reminder in the local DB is only triggered when permissions for
+            //     background access to the user's location have been granted
             checkPermissionsAndAddGeofencingRequest(daReminder)
-
-            // store reminder in DB
-            _viewModel.saveReminder(daReminder)
 
         }  // onClickListener (FAB - save)
 
@@ -238,6 +236,11 @@ class SaveReminderFragment : BaseFragment() {
                         // Geofences added
                         _viewModel.showToast.value =
                             "GeoFence added for reminder location ${reminder.location}"
+
+                        // store reminder in DB
+                        // ... this also takes the user back to the ReminderListFragment
+                        _viewModel.saveReminder(daReminder)
+
                     }
                     addOnFailureListener {
                         // Failed to add geofences
