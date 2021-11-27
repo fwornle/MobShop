@@ -9,6 +9,7 @@ import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
 import com.udacity.project4.locationreminders.reminderslist.RemindersListViewModel
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import org.junit.After
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
@@ -16,6 +17,7 @@ import org.junit.runner.RunWith
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
 import org.koin.dsl.module
 import org.koin.java.KoinJavaComponent.inject
 import org.koin.test.KoinTest
@@ -27,6 +29,9 @@ class SaveReminderViewModelTest: KoinTest {
 
     @Before
     fun setup() {
+
+        // stop the original app koin, which is launched when the application starts (in "MyApp")
+        stopKoin()
 
         /**
          * use Koin Library as a service locator
@@ -119,5 +124,8 @@ class SaveReminderViewModelTest: KoinTest {
         // then false should be returned
         Assert.assertEquals(result, false)
     }
+
+    @After
+    fun stopKoinAfterTest() = stopKoin()
 
 }

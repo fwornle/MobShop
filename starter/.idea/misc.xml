@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DesignSurface">
+    <option name="filePathToZoomLevelMap">
+      <map>
+        <entry key="..\:/_Frank/android/_udacity/nd940-android-kotlin-c4-starter/starter/app/src/main/res/drawable/ic_launcher_background.xml" value="0.2755208333333333" />
+        <entry key="..\:/_Frank/android/_udacity/nd940-android-kotlin-c4-starter/starter/app/src/main/res/layout/activity_authentication.xml" value="0.1" />
+        <entry key="..\:/_Frank/android/_udacity/nd940-android-kotlin-c4-starter/starter/app/src/main/res/layout/activity_reminder_description.xml" value="0.16" />
+        <entry key="..\:/_Frank/android/_udacity/nd940-android-kotlin-c4-starter/starter/app/src/main/res/layout/activity_reminders.xml" value="0.13385416666666666" />
+        <entry key="..\:/_Frank/android/_udacity/nd940-android-kotlin-c4-starter/starter/app/src/main/res/layout/fragment_reminders.xml" value="0.259375" />
+        <entry key="..\:/_Frank/android/_udacity/nd940-android-kotlin-c4-starter/starter/app/src/main/res/layout/fragment_save_reminder.xml" value="0.259375" />
+        <entry key="..\:/_Frank/android/_udacity/nd940-android-kotlin-c4-starter/starter/app/src/main/res/layout/fragment_select_location.xml" value="0.10400000000000001" />
+        <entry key="..\:/_Frank/android/_udacity/nd940-android-kotlin-c4-starter/starter/app/src/main/res/layout/it_reminder.xml" value="0.13489583333333333" />
+        <entry key="..\:/_Frank/android/_udacity/nd940-android-kotlin-c4-starter/starter/app/src/main/res/menu/map_options.xml" value="0.13385416666666666" />
+      </map>
+    </option>
+  </component>
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="Android Studio default JDK" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/build/classes" />
+  </component>
+  <component name="ProjectType">
+    <option name="id" value="Android" />
+  </component>
+</project>
