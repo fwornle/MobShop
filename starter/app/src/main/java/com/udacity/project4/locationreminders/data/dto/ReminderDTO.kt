@@ -3,6 +3,7 @@ package com.udacity.project4.locationreminders.data.dto
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import androidx.room.RewriteQueriesToDropUnusedColumns
 import java.util.*
 
 /**
@@ -17,6 +18,7 @@ import java.util.*
  */
 
 @Entity(tableName = "reminders")
+@RewriteQueriesToDropUnusedColumns
 data class ReminderDTO(
     @ColumnInfo(name = "title") var title: String?,
     @ColumnInfo(name = "description") var description: String?,
