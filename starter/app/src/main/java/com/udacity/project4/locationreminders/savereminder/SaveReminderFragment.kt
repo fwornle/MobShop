@@ -131,8 +131,8 @@ class SaveReminderFragment : BaseFragment() {
     //     https://developer.android.com/training/permissions/requesting
     private fun registerBackgroundLocationAccessPermissionCheck() {
 
-        // as (at least) for access to COARSE location info
-        locationPermission = Manifest.permission.ACCESS_COARSE_LOCATION
+        // ask (at least) for access to FINE location info
+        locationPermission = Manifest.permission.ACCESS_FINE_LOCATION
 
         // from Android API "Q" (28) on, we must ask for BACKGROUND access to
         // location tracking (= always, not just "when using the app")
@@ -232,6 +232,7 @@ class SaveReminderFragment : BaseFragment() {
 
                 // add geoFence (by registering it with the system via the geofencing client)
                 geofencingClient.addGeofences(geoFencingRequest, geofencePendingIntent).run {
+
                     addOnSuccessListener {
                         // Geofences added
                         _viewModel.showToast.value =
@@ -239,15 +240,30 @@ class SaveReminderFragment : BaseFragment() {
 
                         // store reminder in DB
                         // ... this also takes the user back to the ReminderListFragment
-                        _viewModel.saveReminder(daReminder)
+                        _viewModel.validateAndSaveReminder(daReminder)
 
                     }
+
                     addOnFailureListener {
+
                         // Failed to add geofences
-                        _viewModel.showErrorMessage.value =
-                            "Error adding geoFence: ${it.message}"
-                    }
-                }
+                        when (it.message) {
+                            "1000: " -> {
+                                // ... might be thrown on older devices (< Android "Q") when gms
+                                //     'Improve Location Accuracy' has been disabled
+                                // see: https://stackoverflow.com/questions/53996168/geofence-not-avaible-code-1000-while-trying-to-set-up-geofence/53998150
+                                _viewModel.showErrorMessage.value =
+                                    "Location Reminder needs 'Improve Location Accuracy' enabled. Go to settings 'Security & Location > Location > Mode' to enable this."
+                            }
+                            else -> {
+                                _viewModel.showErrorMessage.value =
+                                    "Error adding geoFence: ${it.message}"
+                            }
+                        }  // when
+
+                    }  // onFailureListener
+
+                }  // addGeofences (lambda)
 
             }
             else -> {
