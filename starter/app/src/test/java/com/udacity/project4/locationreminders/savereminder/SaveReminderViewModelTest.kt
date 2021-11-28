@@ -31,17 +31,22 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     private lateinit var reminderData: ReminderDataItem
     private lateinit var privateTestFun: Method
 
-    private var testInitialized = false
+    // viewModel from Koin DI
     private val _viewModel: SaveReminderViewModel by inject()
 
-    // run before every test
+    // avoid re-curring (re)-initializing of the Koin, if possible
+    //
+    // ... done this way to avoid hassle with @BeforeClass (needs to be static --> @JvmStatic +
+    //     encapsulation in companion object... but cannot be static, because we are using Koin DI)
+    //     see: https://stackoverflow.com/questions/32952884/junit-beforeclass-non-static-work-around-for-spring-boot-application
+    private var testInitialized = false
+
+
+    // run before each individual test
     @Before
     fun setupClass() {
 
-        // run once, ab beginning of test suite  ----------------------------------------
-
-        // ... done this way to avoid hassle with @BeforeClass & @JvmStatic when using DI
-        //     see: https://stackoverflow.com/questions/32952884/junit-beforeclass-non-static-work-around-for-spring-boot-application
+        // run ONCE, ab BEGINNING of test suite  ----------------------------------------
         if (testInitialized) {
 
             // stop the original app koin, which is launched when the application starts (in "MyApp")
@@ -90,15 +95,16 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
                 modules(listOf(myModule))
             }
 
-            // now initialized
+            // Koin now initialized --> DI now possible
+            // ... set flag to avoid unnecessary re-initialization of Koin
             testInitialized = true
 
         }  // if(testInitialized)
 
 
-        // run before each test ----------------------------------------
+        // run BEFORE EACH individual test ----------------------------------------
 
-        // pre-initialize reminderData (valid)
+        // re-initialize reminderData with a valid data record
         reminderData = ReminderDataItem(
             "test title",
             "test description",
@@ -113,12 +119,15 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     @Test
     fun `validateEnteredData returns false if title is empty`() {
 
-        // given access to the viewModel and the PRIVATE method to be tested via reflection
-        //     see: https://medium.com/mindorks/how-to-unit-test-private-methods-in-java-and-kotlin-d3cae49dccd
-        privateTestFun = _viewModel.javaClass.getDeclaredMethod("validateEnteredData", reminderData.javaClass)
-        privateTestFun.setAccessible(true)
+        // given...
+        // ... access to the viewModel (injected from Koin module) and
+        // ... access to the PRIVATE method to be tested via REFLECTION (see:
+        //     https://medium.com/mindorks/how-to-unit-test-private-methods-in-java-and-kotlin-d3cae49dccd)
+        privateTestFun = _viewModel.javaClass
+            .getDeclaredMethod("validateEnteredData", reminderData.javaClass)
+            .apply { isAccessible = true }
 
-        // when validating the data item
+        // when validating the data item with the following 'impairment'
         reminderData.title = null
 
         // then false should be returned
@@ -126,42 +135,62 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
 
     }
 
-//    @Test
-//    fun `validateEnteredData returns false if location is empty`() {
-//
-//        // given a viewModel
-//        val _viewModel: SaveReminderViewModel by inject()
-//
-//        // when validating the data item
-//        val reminderData = ReminderDataItem(
-//            "hello",
-//            "irrelevant",
-//            "",
-//            1.0,
-//            2.0,
-//        )
-//
-//        // then false should be returned
-//        Assert.assertEquals(false, _viewModel.validateEnteredData(reminderData))
-//    }
-//
-//    @Test
-//    fun `validateEnteredData returns true if neither title nor location are empty`() {
-//
-//        // given a viewModel
-//        val _viewModel: SaveReminderViewModel by inject()
-//
-//        // when validating the data item
-//        val reminderData = ReminderDataItem(
-//            "hello",
-//            "",
-//            "mystery",
-//            1.0,
-//            2.0,
-//        )
-//
-//        // then true should be returned
-//        Assert.assertEquals(true, _viewModel.validateEnteredData(reminderData))
-//    }
+    @Test
+    fun `validateEnteredData returns false if location is empty`() {
+
+        // given...
+        // ... access to the viewModel (injected from Koin module) and
+        // ... access to the PRIVATE method to be tested via REFLECTION (see:
+        //     https://medium.com/mindorks/how-to-unit-test-private-methods-in-java-and-kotlin-d3cae49dccd)
+        privateTestFun = _viewModel.javaClass
+            .getDeclaredMethod("validateEnteredData", reminderData.javaClass)
+            .apply { isAccessible = true }
+
+        // when validating the data item with the following 'impairment'
+        reminderData.location = ""
+
+        // then false should be returned
+        Assert.assertEquals(false, privateTestFun(_viewModel, reminderData))
+
+    }
+
+    @Test
+    fun `validateEnteredData returns false if both title and location are empty`() {
+
+        // given...
+        // ... access to the viewModel (injected from Koin module) and
+        // ... access to the PRIVATE method to be tested via REFLECTION (see:
+        //     https://medium.com/mindorks/how-to-unit-test-private-methods-in-java-and-kotlin-d3cae49dccd)
+        privateTestFun = _viewModel.javaClass
+            .getDeclaredMethod("validateEnteredData", reminderData.javaClass)
+            .apply { isAccessible = true }
+
+        // when validating the data item with the following 'impairment'
+        reminderData.title = null
+        reminderData.location = ""
+
+        // then false should be returned
+        Assert.assertEquals(false, privateTestFun(_viewModel, reminderData))
+
+    }
+
+    @Test
+    fun `validateEnteredData returns true if neither title nor location are empty`() {
+
+        // given...
+        // ... access to the viewModel (injected from Koin module) and
+        // ... access to the PRIVATE method to be tested via REFLECTION (see:
+        //     https://medium.com/mindorks/how-to-unit-test-private-methods-in-java-and-kotlin-d3cae49dccd)
+        privateTestFun = _viewModel.javaClass
+            .getDeclaredMethod("validateEnteredData", reminderData.javaClass)
+            .apply { isAccessible = true }
+
+        // when validating the data item with the following 'impairment'
+        // -- none --
+
+        // then true should be returned
+        Assert.assertEquals(true, privateTestFun(_viewModel, reminderData))
+
+    }
 
 }
