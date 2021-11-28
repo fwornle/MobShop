@@ -1,17 +1,22 @@
 package com.udacity.project4.locationreminders.savereminder
 
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.udacity.project4.R
 import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.local.LocalDB
 import com.udacity.project4.locationreminders.data.local.RemindersLocalRepository
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
 import com.udacity.project4.locationreminders.reminderslist.RemindersListViewModel
+import com.udacity.project4.locationreminders.testutils.getOrAwaitValue
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import org.hamcrest.MatcherAssert.assertThat
+import org.hamcrest.Matchers.*
 import org.junit.Assert
 import org.junit.Before
-import org.junit.BeforeClass
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.android.ext.koin.androidContext
@@ -41,6 +46,9 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     //     see: https://stackoverflow.com/questions/32952884/junit-beforeclass-non-static-work-around-for-spring-boot-application
     private var testInitialized = false
 
+    // test liveData
+    @get:Rule
+    var instantExecutorRule = InstantTaskExecutorRule()
 
     // run before each individual test
     @Before
@@ -115,9 +123,11 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
 
     }  // setupClass()
 
-
+    /* ******************************************************************
+     * test suite for: validateEnteredData (private method)
+     * ******************************************************************/
     @Test
-    fun `validateEnteredData returns false if title is empty`() {
+    fun `validateEnteredData returns false if title is missing`() {
 
         // given...
         // ... access to the viewModel (injected from Koin module) and
@@ -136,7 +146,7 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     }
 
     @Test
-    fun `validateEnteredData returns false if location is empty`() {
+    fun `validateEnteredData returns false if location is missing`() {
 
         // given...
         // ... access to the viewModel (injected from Koin module) and
@@ -155,7 +165,7 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     }
 
     @Test
-    fun `validateEnteredData returns false if both title and location are empty`() {
+    fun `validateEnteredData returns false if both title and location are missing`() {
 
         // given...
         // ... access to the viewModel (injected from Koin module) and
@@ -175,7 +185,7 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     }
 
     @Test
-    fun `validateEnteredData returns true if neither title nor location are empty`() {
+    fun `validateEnteredData returns true if neither title nor location are missing`() {
 
         // given...
         // ... access to the viewModel (injected from Koin module) and
@@ -190,6 +200,62 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
 
         // then true should be returned
         Assert.assertEquals(true, privateTestFun(_viewModel, reminderData))
+
+    }
+
+    // LiveData: snackBarInt
+    @Test
+    fun `validateEnteredData triggers single event showSnackBarInt when title is missing`() {
+
+        // GIVEN...
+        // ... access to the viewModel (injected from Koin module) and
+        // ... access to the PRIVATE method to be tested via REFLECTION (see:
+        //     https://medium.com/mindorks/how-to-unit-test-private-methods-in-java-and-kotlin-d3cae49dccd)
+        privateTestFun = _viewModel.javaClass
+            .getDeclaredMethod("validateEnteredData", reminderData.javaClass)
+            .apply { isAccessible = true }
+
+        // WHEN...
+        // ... validating the data item with the following 'impairment' and after triggering the
+        //     method to be tested (private --> indirection via reflected method for access)
+        reminderData.title = ""
+        privateTestFun(_viewModel, reminderData)
+
+        // THEN the snackbar event (showSnackBarInt) should be triggered
+        //
+        // --> use LiveData extension function 'getOrAwaitValue' to fetch LiveData value of
+        //     SingleEvent 'showSnackBarInt' or return with an error after 2 seconds (timeout)
+        // --> using assertThat from hamcrest library directly (as org.junit.* 'indirection' has
+        //     been deprecated
+        assertThat(_viewModel.showSnackBarInt.getOrAwaitValue(), equalTo(R.string.err_enter_title))
+
+    }
+
+    // LiveData: snackBarInt
+    @Test
+    fun `validateEnteredData triggers single event showSnackBarInt when location is missing`() {
+
+        // GIVEN...
+        // ... access to the viewModel (injected from Koin module) and
+        // ... access to the PRIVATE method to be tested via REFLECTION (see:
+        //     https://medium.com/mindorks/how-to-unit-test-private-methods-in-java-and-kotlin-d3cae49dccd)
+        privateTestFun = _viewModel.javaClass
+            .getDeclaredMethod("validateEnteredData", reminderData.javaClass)
+            .apply { isAccessible = true }
+
+        // WHEN...
+        // ... validating the data item with the following 'impairment' and after triggering the
+        //     method to be tested (private --> indirection via reflected method for access)
+        reminderData.location = ""
+        privateTestFun(_viewModel, reminderData)
+
+        // THEN the snackbar event (showSnackBarInt) should be triggered
+        //
+        // --> use LiveData extension function 'getOrAwaitValue' to fetch LiveData value of
+        //     SingleEvent 'showSnackBarInt' or return with an error after 2 seconds (timeout)
+        // --> using assertThat from hamcrest library directly (as org.junit.* 'indirection' has
+        //     been deprecated
+        assertThat(_viewModel.showSnackBarInt.getOrAwaitValue(), equalTo(R.string.err_select_location))
 
     }
 
