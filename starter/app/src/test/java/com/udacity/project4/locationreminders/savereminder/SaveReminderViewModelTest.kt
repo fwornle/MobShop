@@ -36,13 +36,14 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     private lateinit var reminderData: ReminderDataItem
     private lateinit var privateTestFun: Method
 
-    // viewModel from Koin DI
-    private val _viewModel: SaveReminderViewModel by inject()
+    // viewModel from Koin service locator
+    private lateinit var _viewModel: SaveReminderViewModel
 
     // avoid re-curring (re)-initializing of the Koin, if possible
     //
     // ... done this way to avoid hassle with @BeforeClass (needs to be static --> @JvmStatic +
-    //     encapsulation in companion object... but cannot be static, because we are using Koin DI)
+    //     encapsulation in companion object... but cannot be static, because we are using Koin
+    //     service locator to resolve dependencies)
     //     see: https://stackoverflow.com/questions/32952884/junit-beforeclass-non-static-work-around-for-spring-boot-application
     private var testInitialized = false
 
@@ -111,6 +112,9 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
 
 
         // run BEFORE EACH individual test ----------------------------------------
+
+        // "inject" viewModel dependency (to obtain a freshly initialized VM
+        _viewModel = inject<SaveReminderViewModel>().value
 
         // re-initialize reminderData with a valid data record
         reminderData = ReminderDataItem(
