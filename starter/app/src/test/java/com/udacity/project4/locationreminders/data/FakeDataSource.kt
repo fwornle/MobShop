@@ -1,28 +1,45 @@
 package com.udacity.project4.locationreminders.data
 
+import com.google.android.gms.tasks.SuccessContinuation
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.data.dto.Result
+import java.lang.Exception
 
-//Use FakeDataSource that acts as a test double to the LocalDataSource
-class FakeDataSource : ReminderDataSource {
-
-//    TODO: Create a fake data source to act as a double to the real data source
+// use FakeDataSource that acts as a test double to the LocalDataSource
+// inject the reminders stored in this source via the constructor of the class
+class FakeDataSource(var reminders: MutableList<ReminderDTO>? = mutableListOf()) : ReminderDataSource {
 
     override suspend fun getReminders(): Result<List<ReminderDTO>> {
-        TODO("Return the reminders")
+        // return the entire list of reminders from fake local data source... if any
+        reminders?.let {
+            return Result.Success(ArrayList(it))
+        }
+        return Result.Error(
+            "No reminders found in (fake) local storage."
+        )
     }
 
     override suspend fun saveReminder(reminder: ReminderDTO) {
-        TODO("save the reminder")
+        // store provided reminder in fake local data source (list)
+        reminders?.add(reminder)
     }
 
     override suspend fun getReminder(id: String): Result<ReminderDTO> {
-        TODO("return the reminder with the id")
+        // fetch reminder associated with provided id
+        reminders?.firstOrNull {it.id == id} ?.let {
+            // found it
+            return Result.Success(it)
+        }
+
+        // reminder with ID not found
+        return Result.Error(
+            "Reminder with ID $id not found in (fake) local storage."
+        )
     }
 
     override suspend fun deleteAllReminders() {
-        TODO("delete all the reminders")
+        // empty list to fake deleting all records from local data source (DB)
+        reminders?.clear()
     }
-
 
 }
