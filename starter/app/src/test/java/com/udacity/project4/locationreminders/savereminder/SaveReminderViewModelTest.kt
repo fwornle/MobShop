@@ -269,6 +269,9 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
 
     }
 
+
+    // test LiveData ------------------------------------------------------------
+
     // LiveData: snackBarInt
     @Test
     fun `validateEnteredData triggers single event showSnackBarInt when title is missing`() {
@@ -322,6 +325,71 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
         // --> using assertThat from hamcrest library directly (as org.junit.* 'indirection' has
         //     been deprecated
         assertThat(_viewModel.showSnackBarInt.getOrAwaitValue(), equalTo(R.string.err_select_location))
+
+    }
+
+    // LiveData: reminderTitle
+    @Test
+    fun `setting value in MutableLiveData reminderTitle triggers LiveData observer`() {
+
+        // WHEN...
+        // ... setting the value of the LiveData element to be tested
+        _viewModel.reminderTitle.value = "test"
+
+        // THEN the associated LiveData observer should be triggered
+        assertThat(_viewModel.reminderTitle.getOrAwaitValue(), equalTo("test"))
+
+    }
+
+    // LiveData: reminderDescription
+    @Test
+    fun `setting value in MutableLiveData reminderDescription triggers LiveData observer`() {
+
+        // WHEN...
+        // ... setting the value of the LiveData element to be tested
+        _viewModel.reminderDescription.value = "test"
+
+        // THEN the associated LiveData observer should be triggered
+        assertThat(_viewModel.reminderDescription.getOrAwaitValue(), equalTo("test"))
+
+    }
+
+    // LiveData: reminderSelectedLocationStr
+    @Test
+    fun `setting value in MutableLiveData reminderSelectedLocationStr triggers LiveData observer`() {
+
+        // WHEN...
+        // ... setting the value of the LiveData element to be tested
+        _viewModel.reminderSelectedLocationStr.value = "test"
+
+        // THEN the associated LiveData observer should be triggered
+        assertThat(_viewModel.reminderSelectedLocationStr.getOrAwaitValue(), equalTo("test"))
+
+    }
+
+    // LiveData: latitude
+    @Test
+    fun `setting value in MutableLiveData latitude triggers LiveData observer`() {
+
+        // WHEN...
+        // ... setting the value of the LiveData element to be tested
+        _viewModel.latitude.value = 1.0
+
+        // THEN the associated LiveData observer should be triggered
+        assertThat(_viewModel.latitude.getOrAwaitValue(), equalTo(1.0))
+
+    }
+
+    // LiveData: longitude
+    @Test
+    fun `setting value in MutableLiveData longitude triggers LiveData observer`() {
+
+        // WHEN...
+        // ... setting the value of the LiveData element to be tested
+        _viewModel.longitude.value = 1.0
+
+        // THEN the associated LiveData observer should be triggered
+        assertThat(_viewModel.longitude.getOrAwaitValue(), equalTo(1.0))
 
     }
 
