@@ -15,7 +15,7 @@ class FakeDataSource(var reminders: MutableList<ReminderDTO>? = mutableListOf())
             return Result.Success(ArrayList(it))
         }
         return Result.Error(
-            "No reminders found in (fake) local storage."
+            "Could not fetch reminders from (fake) local storage."
         )
     }
 

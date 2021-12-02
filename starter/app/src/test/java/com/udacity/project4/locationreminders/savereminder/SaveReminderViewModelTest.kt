@@ -4,7 +4,10 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.udacity.project4.R
+import com.udacity.project4.locationreminders.data.FakeDataSource
 import com.udacity.project4.locationreminders.data.ReminderDataSource
+import com.udacity.project4.locationreminders.data.dto.ReminderDTO
+import com.udacity.project4.locationreminders.data.dto.Result
 import com.udacity.project4.locationreminders.data.local.LocalDB
 import com.udacity.project4.locationreminders.data.local.RemindersLocalRepository
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
@@ -12,8 +15,11 @@ import com.udacity.project4.locationreminders.reminderslist.RemindersListViewMod
 import com.udacity.project4.locationreminders.testutils.getOrAwaitValue
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.runBlockingTest
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.*
+import org.hamcrest.core.Is
+import org.hamcrest.core.IsEqual
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Rule
@@ -27,6 +33,7 @@ import org.koin.dsl.module
 import org.koin.test.AutoCloseKoinTest
 import org.koin.test.inject
 import java.lang.reflect.Method
+import java.util.*
 
 @ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
@@ -38,6 +45,11 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
 
     // viewModel from Koin service locator
     private lateinit var _viewModel: SaveReminderViewModel
+
+    // reminder repository and fake data
+    private lateinit var reminderRepo: ReminderDataSource
+    private lateinit var reminderDtoList: MutableList<ReminderDTO>
+    private lateinit var reminderNew: ReminderDTO
 
     // avoid re-curring (re)-initializing of the Koin, if possible
     //
@@ -85,12 +97,16 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
                     )
                 }
 
+                // ReminderDataSource
+                //
                 // declare a (singleton) repository service with interface "ReminderDataSource"
                 // note: the repo needs the DAO of the room database (RemindersDao)
                 //       ... which is why it is declared (below) as singleton object and injected
                 //           using "get()" in the lambda of the declaration
                 single<ReminderDataSource> { RemindersLocalRepository(get()) }
 
+                // RemindersDao
+                //
                 // declare the local DB singleton object - used as data source for the repository
                 // note: LocalDB.createRemindersDao returns a DAO with interface RemindersDao
                 //       ... the DAO is needed by the repo (where it is injected, see "get()", above)
@@ -104,8 +120,8 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
                 modules(listOf(myModule))
             }
 
-            // Koin now initialized --> DI now possible
-            // ... set flag to avoid unnecessary re-initialization of Koin
+            // Koin now initialized --> service provision via Koin now possible
+            // ... set flag to avoid unnecessary re-initializations
             testInitialized = true
 
         }  // if(testInitialized)
@@ -113,8 +129,54 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
 
         // run BEFORE EACH individual test ----------------------------------------
 
-        // "inject" viewModel dependency (to obtain a freshly initialized VM
+        // "inject" viewModel dependency (to obtain a freshly initialized VM)
         _viewModel = inject<SaveReminderViewModel>().value
+
+        // generate some test database items (location reminders)
+        reminderDtoList = mutableListOf<ReminderDTO>()
+        reminderDtoList.add(
+            ReminderDTO(
+                "test title 1",
+                "test description 1",
+                "test location 1",
+                1.0,
+                1.0,
+                UUID.randomUUID().toString(),
+            )
+        )
+        reminderDtoList.add(
+            ReminderDTO(
+                "test title 2",
+                "test description 2",
+                "test location 2",
+                2.0,
+                2.0,
+                UUID.randomUUID().toString(),
+            )
+        )
+        reminderDtoList.add(
+            ReminderDTO(
+                "test title 3",
+                "test description 3",
+                "test location 3",
+                3.0,
+                3.0,
+                UUID.randomUUID().toString(),
+            )
+        )
+
+        // new entry to be added to the repo
+        reminderNew = ReminderDTO(
+            "test title 4",
+            "test description 4",
+            "test location 4",
+            4.0,
+            4.0,
+            UUID.randomUUID().toString(),
+        )
+
+        // define a 'fresh fake repository' for each test
+        reminderRepo = FakeDataSource(reminderDtoList)
 
         // re-initialize reminderData with a valid data record
         reminderData = ReminderDataItem(
@@ -260,6 +322,77 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
         // --> using assertThat from hamcrest library directly (as org.junit.* 'indirection' has
         //     been deprecated
         assertThat(_viewModel.showSnackBarInt.getOrAwaitValue(), equalTo(R.string.err_select_location))
+
+    }
+
+
+    // test repository ------------------------------------------------------------
+
+    // getReminders
+    @ExperimentalCoroutinesApi
+    @Test
+    fun `getReminders requests all reminders from local data source`() = runBlockingTest {
+
+        // WHEN reminders are requested from the repository / location reminder repository
+        val reminders = reminderRepo.getReminders() as Result.Success
+
+        // THEN reminders are loaded from the local data source
+        assertThat(reminders.data, IsEqual(reminderDtoList))
+
+    }
+
+    // getReminder --> Result.Success
+    @ExperimentalCoroutinesApi
+    @Test
+    fun `getReminder requests existing reminder from repository`() = runBlockingTest {
+
+        // WHEN an existent reminder is requested from the location reminder repository
+        val reminder = reminderRepo.getReminder(reminderDtoList.first().id) as Result.Success
+
+        // THEN this reminder is loaded from the repository / location reminder repository
+        assertThat(reminder.data, IsEqual(reminderDtoList.first()))
+
+    }
+
+    // getReminder --> Result.Error
+    @ExperimentalCoroutinesApi
+    @Test
+    fun `getReminder requests non-existing reminder from repository`() = runBlockingTest {
+
+        // WHEN a non-existent reminder is requested from the location reminder repository
+        val fakeId = "this is a fake ID"
+        val noReminder = reminderRepo.getReminder(fakeId) as Result.Error
+
+        // THEN the return value is an error message
+        assertThat(noReminder.message, IsEqual("Reminder with ID $fakeId not found in (fake) local storage."))
+
+    }
+
+    // saveReminder
+    @ExperimentalCoroutinesApi
+    @Test
+    fun `saveReminder writes new reminder to repository`() = runBlockingTest {
+
+        // WHEN a new reminder is added to the location reminder repository
+        reminderRepo.saveReminder(reminderNew)
+        val reminderReadBack = reminderRepo.getReminder(reminderNew.id) as Result.Success
+
+        // THEN this reminder is stored in the repository
+        assertThat(reminderReadBack.data, IsEqual(reminderNew))
+
+    }
+
+    // deleteAllReminders
+    @ExperimentalCoroutinesApi
+    @Test
+    fun `deleteAllReminders deletes all reminders from repository`() = runBlockingTest {
+
+        // WHEN all reminders are deleted from the location reminder repository
+        reminderRepo.deleteAllReminders()
+
+        // THEN the repository is empty
+        val reminderReadBack = reminderRepo.getReminders() as Result.Success
+        assertThat(reminderReadBack.data, Is(empty()))
 
     }
 
