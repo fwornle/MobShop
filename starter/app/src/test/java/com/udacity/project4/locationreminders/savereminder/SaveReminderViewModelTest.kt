@@ -185,6 +185,7 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
             "test location",
             1.0,
             2.0,
+            UUID.randomUUID().toString(),
         )
 
     }  // setupClass()
@@ -269,6 +270,29 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
 
     }
 
+
+    @Test
+    fun `validateAndSaveReminder stores valid reminder in repository`()  = runBlockingTest {
+
+        // GIVEN...
+        // ... access to the viewModel (injected from Koin module) and
+        // ... some VALID reminder
+
+        // WHEN calling function validateAndSaveReminder
+        _viewModel.validateAndSaveReminder(reminderData)
+        val reminderReadBack = reminderRepo.getReminder(reminderData.id)
+
+        // THEN the reminder is verified and stored in the repository
+        when (reminderReadBack) {
+            is Result.Success -> {
+                assertThat(reminderReadBack.data, IsEqual(reminderData))
+            }
+            is Result.Error -> {
+                assertThat(reminderReadBack.message, IsEqual("Reminder with ID ${reminderData.id} not found in (fake) local storage."))
+            }
+        }
+
+    }
 
     // test LiveData ------------------------------------------------------------
 
@@ -390,6 +414,30 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
 
         // THEN the associated LiveData observer should be triggered
         assertThat(_viewModel.longitude.getOrAwaitValue(), equalTo(1.0))
+
+    }
+
+    // LiveData: onClear
+    @Test
+    fun `calling onClear triggers all LiveData observers and sets values to null`() {
+
+        // WHEN...
+        // ... all LiveData element are set to non-null values and
+        _viewModel.reminderTitle.value = "test"
+        _viewModel.reminderDescription.value = "test"
+        _viewModel.reminderSelectedLocationStr.value = "test"
+        _viewModel.latitude.value = 1.0
+        _viewModel.longitude.value = 1.0
+
+        // ... onClear is called
+        _viewModel.onClear()
+
+        // THEN all associated LiveData observers should be triggered and the values should be null
+        assertThat(_viewModel.reminderTitle.getOrAwaitValue(), equalTo(null))
+        assertThat(_viewModel.reminderDescription.getOrAwaitValue(), equalTo(null))
+        assertThat(_viewModel.reminderSelectedLocationStr.getOrAwaitValue(), equalTo(null))
+        assertThat(_viewModel.latitude.getOrAwaitValue(), equalTo(null))
+        assertThat(_viewModel.longitude.getOrAwaitValue(), equalTo(null))
 
     }
 
