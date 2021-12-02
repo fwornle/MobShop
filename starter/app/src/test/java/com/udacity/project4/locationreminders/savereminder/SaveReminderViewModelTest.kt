@@ -43,7 +43,7 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     private lateinit var reminderData: ReminderDataItem
     private lateinit var privateTestFun: Method
 
-    // viewModel from Koin service locator
+    // viewModel
     private lateinit var _viewModel: SaveReminderViewModel
 
     // reminder repository and fake data
@@ -51,86 +51,26 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     private lateinit var reminderDtoList: MutableList<ReminderDTO>
     private lateinit var reminderNew: ReminderDTO
 
-    // avoid re-curring (re)-initializing of the Koin, if possible
-    //
-    // ... done this way to avoid hassle with @BeforeClass (needs to be static --> @JvmStatic +
-    //     encapsulation in companion object... but cannot be static, because we are using Koin
-    //     service locator to resolve dependencies)
-    //     see: https://stackoverflow.com/questions/32952884/junit-beforeclass-non-static-work-around-for-spring-boot-application
-    private var testInitialized = false
-
+    
     // test liveData
     @get:Rule
     var instantExecutorRule = InstantTaskExecutorRule()
 
     // run before each individual test
     @Before
-    fun setupClass() {
-
-        // run ONCE, ab BEGINNING of test suite  ----------------------------------------
-        if (testInitialized) {
-
-            // stop the original app koin, which is launched when the application starts (in "MyApp")
-            stopKoin()
-
-            /**
-             * use Koin Library as a service locator
-             */
-            val myModule = module {
-
-                // declare a ViewModel - to be injected into Fragment with dedicated injector using
-                // "by viewModel()"
-                viewModel {
-                    RemindersListViewModel(
-                        get(),  // app (context)
-                        get() as ReminderDataSource  // repo as data source
-                    )
-                }
-
-                // declare a ViewModel - to be injected into Fragment with standard injector using
-                // "by inject()"
-                // --> this view model is declared singleton to be used across multiple fragments
-                single {
-                    SaveReminderViewModel(
-                        get(),
-                        get() as ReminderDataSource
-                    )
-                }
-
-                // ReminderDataSource
-                //
-                // declare a (singleton) repository service with interface "ReminderDataSource"
-                // note: the repo needs the DAO of the room database (RemindersDao)
-                //       ... which is why it is declared (below) as singleton object and injected
-                //           using "get()" in the lambda of the declaration
-                single<ReminderDataSource> { RemindersLocalRepository(get()) }
-
-                // RemindersDao
-                //
-                // declare the local DB singleton object - used as data source for the repository
-                // note: LocalDB.createRemindersDao returns a DAO with interface RemindersDao
-                //       ... the DAO is needed by the repo (where it is injected, see "get()", above)
-                single { LocalDB.createRemindersDao(ApplicationProvider.getApplicationContext()) }
-            }
-
-            // instantiate viewModels, repos and DBs and inject them as services into consuming classes
-            // ... using KOIN framework (as "service locator"): https://insert-koin.io/
-            startKoin {
-                androidContext(ApplicationProvider.getApplicationContext())
-                modules(listOf(myModule))
-            }
-
-            // Koin now initialized --> service provision via Koin now possible
-            // ... set flag to avoid unnecessary re-initializations
-            testInitialized = true
-
-        }  // if(testInitialized)
-
+    fun setupTest() {
 
         // run BEFORE EACH individual test ----------------------------------------
 
-        // "inject" viewModel dependency (to obtain a freshly initialized VM)
-        _viewModel = inject<SaveReminderViewModel>().value
+        // re-initialize reminderData with a valid data record
+        reminderData = ReminderDataItem(
+            "test title",
+            "test description",
+            "test location",
+            1.0,
+            2.0,
+            UUID.randomUUID().toString(),
+        )
 
         // generate some test database items (location reminders)
         reminderDtoList = mutableListOf<ReminderDTO>()
@@ -175,20 +115,17 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
             UUID.randomUUID().toString(),
         )
 
-        // define a 'fresh fake repository' for each test
+        // get a fresh fake data source (repository)
         reminderRepo = FakeDataSource(reminderDtoList)
 
-        // re-initialize reminderData with a valid data record
-        reminderData = ReminderDataItem(
-            "test title",
-            "test description",
-            "test location",
-            1.0,
-            2.0,
-            UUID.randomUUID().toString(),
+        // get a fresh viewModel
+        _viewModel = SaveReminderViewModel(
+            ApplicationProvider.getApplicationContext(),
+            reminderRepo,
         )
 
-    }  // setupClass()
+    }  // setupTest()
+
 
     /* ******************************************************************
      * test suite for: validateEnteredData (private method)
@@ -196,18 +133,17 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     @Test
     fun `validateEnteredData returns false if title is missing`() {
 
-        // given...
-        // ... access to the viewModel (injected from Koin module) and
+        // GIVEN...
         // ... access to the PRIVATE method to be tested via REFLECTION (see:
         //     https://medium.com/mindorks/how-to-unit-test-private-methods-in-java-and-kotlin-d3cae49dccd)
         privateTestFun = _viewModel.javaClass
             .getDeclaredMethod("validateEnteredData", reminderData.javaClass)
             .apply { isAccessible = true }
 
-        // when validating the data item with the following 'impairment'
+        // WHEN validating the data item with the following 'impairment'
         reminderData.title = null
 
-        // then false should be returned
+        // THEN false should be returned
         Assert.assertEquals(false, privateTestFun(_viewModel, reminderData))
 
     }
@@ -215,18 +151,17 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     @Test
     fun `validateEnteredData returns false if location is missing`() {
 
-        // given...
-        // ... access to the viewModel (injected from Koin module) and
+        // GIVEN...
         // ... access to the PRIVATE method to be tested via REFLECTION (see:
         //     https://medium.com/mindorks/how-to-unit-test-private-methods-in-java-and-kotlin-d3cae49dccd)
         privateTestFun = _viewModel.javaClass
             .getDeclaredMethod("validateEnteredData", reminderData.javaClass)
             .apply { isAccessible = true }
 
-        // when validating the data item with the following 'impairment'
+        // WHEN validating the data item with the following 'impairment'
         reminderData.location = ""
 
-        // then false should be returned
+        // THEN false should be returned
         Assert.assertEquals(false, privateTestFun(_viewModel, reminderData))
 
     }
@@ -234,19 +169,18 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     @Test
     fun `validateEnteredData returns false if both title and location are missing`() {
 
-        // given...
-        // ... access to the viewModel (injected from Koin module) and
+        // GIVEN...
         // ... access to the PRIVATE method to be tested via REFLECTION (see:
         //     https://medium.com/mindorks/how-to-unit-test-private-methods-in-java-and-kotlin-d3cae49dccd)
         privateTestFun = _viewModel.javaClass
             .getDeclaredMethod("validateEnteredData", reminderData.javaClass)
             .apply { isAccessible = true }
 
-        // when validating the data item with the following 'impairment'
+        // WHEN validating the data item with the following 'impairment'
         reminderData.title = null
         reminderData.location = ""
 
-        // then false should be returned
+        // THEN false should be returned
         Assert.assertEquals(false, privateTestFun(_viewModel, reminderData))
 
     }
@@ -254,45 +188,60 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     @Test
     fun `validateEnteredData returns true if neither title nor location are missing`() {
 
-        // given...
-        // ... access to the viewModel (injected from Koin module) and
+        // GIVEN...
         // ... access to the PRIVATE method to be tested via REFLECTION (see:
         //     https://medium.com/mindorks/how-to-unit-test-private-methods-in-java-and-kotlin-d3cae49dccd)
         privateTestFun = _viewModel.javaClass
             .getDeclaredMethod("validateEnteredData", reminderData.javaClass)
             .apply { isAccessible = true }
 
-        // when validating the data item with the following 'impairment'
+        // WHEN validating the data item with the following 'impairment'
         // -- none --
 
-        // then true should be returned
+        // THEN true should be returned
         Assert.assertEquals(true, privateTestFun(_viewModel, reminderData))
 
     }
 
-
+    /* ******************************************************
+     * combined test - validate and save reminder
+     * ******************************************************/
     @Test
     fun `validateAndSaveReminder stores valid reminder in repository`()  = runBlockingTest {
 
         // GIVEN...
-        // ... access to the viewModel (injected from Koin module) and
         // ... some VALID reminder
 
         // WHEN calling function validateAndSaveReminder
         _viewModel.validateAndSaveReminder(reminderData)
-        val reminderReadBack = reminderRepo.getReminder(reminderData.id)
+        val reminderReadBack = reminderRepo.getReminder(reminderData.id) as Result.Success
 
         // THEN the reminder is verified and stored in the repository
-        when (reminderReadBack) {
-            is Result.Success -> {
-                assertThat(reminderReadBack.data, IsEqual(reminderData))
-            }
-            is Result.Error -> {
-                assertThat(reminderReadBack.message, IsEqual("Reminder with ID ${reminderData.id} not found in (fake) local storage."))
-            }
-        }
+        assertThat(reminderReadBack.data.title, IsEqual(reminderData.title))
+        assertThat(reminderReadBack.data.description, IsEqual(reminderData.description))
+        assertThat(reminderReadBack.data.location, IsEqual(reminderData.location))
+        assertThat(reminderReadBack.data.latitude, IsEqual(reminderData.latitude))
+        assertThat(reminderReadBack.data.longitude, IsEqual(reminderData.longitude))
+        assertThat(reminderReadBack.data.id, IsEqual(reminderData.id))
 
     }
+
+    @Test
+    fun `validateAndSaveReminder refused to store invalid reminder in repository`()  = runBlockingTest {
+
+        // GIVEN...
+        // ... some INVALID reminder
+        reminderData.title = null
+
+        // WHEN calling function validateAndSaveReminder
+        _viewModel.validateAndSaveReminder(reminderData)
+        val reminderReadBack = reminderRepo.getReminder(reminderData.id) as Result.Error
+
+        // THEN the reminder is verified and stored in the repository
+        assertThat(reminderReadBack.message, IsEqual("Reminder with ID ${reminderData.id} not found in (fake) local storage."))
+
+    }
+
 
     // test LiveData ------------------------------------------------------------
 
@@ -301,7 +250,6 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     fun `validateEnteredData triggers single event showSnackBarInt when title is missing`() {
 
         // GIVEN...
-        // ... access to the viewModel (injected from Koin module) and
         // ... access to the PRIVATE method to be tested via REFLECTION (see:
         //     https://medium.com/mindorks/how-to-unit-test-private-methods-in-java-and-kotlin-d3cae49dccd)
         privateTestFun = _viewModel.javaClass
@@ -329,7 +277,6 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     fun `validateEnteredData triggers single event showSnackBarInt when location is missing`() {
 
         // GIVEN...
-        // ... access to the viewModel (injected from Koin module) and
         // ... access to the PRIVATE method to be tested via REFLECTION (see:
         //     https://medium.com/mindorks/how-to-unit-test-private-methods-in-java-and-kotlin-d3cae49dccd)
         privateTestFun = _viewModel.javaClass
