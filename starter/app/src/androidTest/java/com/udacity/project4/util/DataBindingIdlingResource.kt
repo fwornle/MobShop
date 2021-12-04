@@ -104,7 +104,12 @@ fun DataBindingIdlingResource.monitorActivity(
 /**
  * Sets the fragment from a [FragmentScenario] to be used from [DataBindingIdlingResource].
  */
-fun DataBindingIdlingResource.monitorFragment(fragmentScenario: FragmentScenario<out Fragment>) {
+// compile error can be removed by omitting the type parameter annotation 'out' in the declaration
+// of input parameter fragmentScenario:
+// FragmentScenario<out Fragment> --> FragmentScenario<Fragment>
+//
+// ... see: https://stackoverflow.com/questions/47066168/kotlin-function-required-nothing-but-defined-as-a-different-type
+fun DataBindingIdlingResource.monitorFragment(fragmentScenario: FragmentScenario<Fragment>) {
     fragmentScenario.onFragment {
         this.activity = it.requireActivity()
     }
