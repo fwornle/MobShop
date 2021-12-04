@@ -25,47 +25,6 @@ import org.mockito.Mockito.verify
 @MediumTest
 class ReminderListFragmentTest {
 
-    // navigation test: saveReminderFragment --> reminderListFragment
-    @Test
-    fun clickSaveButton_navigateToSaveReminderFragment() {
-
-        // GIVEN - on the saveReminder screen
-        val scenario = launchFragmentInContainer<SaveReminderFragment>(Bundle(), R.style.AppTheme)
-        val navController = mock(NavController::class.java)
-        scenario.onFragment {
-            Navigation.setViewNavController(it.view!!, navController)
-        }
-
-        // WHEN - click on the "SAVE" button (FAB)
-        onView(withId(R.id.saveReminder)).perform(click())
-
-        // THEN - verify that we navigate to the reminder list screen
-        verify(navController).navigate(
-            SaveReminderFragmentDirections.actionSaveReminderFragmentToReminderListFragment()
-        )
-    }
-
-    // navigation test: RemindersList --> SaveReminder
-    @Test
-    fun clickAddReminderButton_navigateToSaveReminderFragment() {
-
-        // GIVEN - on the reminder list screen
-        val scenario = launchFragmentInContainer<ReminderListFragment>(Bundle(), R.style.AppTheme)
-        val navController = mock(NavController::class.java)
-        scenario.onFragment {
-            Navigation.setViewNavController(it.view!!, navController)
-        }
-
-        // WHEN - click on the "+" button (FAB)
-        onView(withId(R.id.addReminderFAB)).perform(click())
-
-        // THEN - verify that we navigate to the save reminder screen
-        verify(navController).navigate(
-            ReminderListFragmentDirections.toSaveReminder()
-        )
-    }
-
-
     //    TODO: test the displayed data on the UI.
 
     @Test
@@ -89,5 +48,72 @@ class ReminderListFragmentTest {
 //        onView(withId(R.id.task_detail_complete_checkbox)).check(matches(not(isChecked())))
     }
 
-//    TODO: add testing for the error messages.
+    //    TODO: add testing for the error messages.
+
+
+    // navigation test: RemindersList --> SaveReminder
+    @Test
+    fun clickAddReminderButton_navigateToSaveReminderFragment() {
+
+        // GIVEN - on the reminder list screen
+        val scenario = launchFragmentInContainer<ReminderListFragment>(Bundle(), R.style.AppTheme)
+        val navController = mock(NavController::class.java)
+        scenario.onFragment {
+            Navigation.setViewNavController(it.view!!, navController)
+        }
+
+        // WHEN - click on the "+" button (FAB)
+        onView(withId(R.id.addReminderFAB)).perform(click())
+
+        // THEN - verify that we navigate to the save reminder screen
+        verify(navController).navigate(
+            ReminderListFragmentDirections.toSaveReminder()
+        )
+    }
+
+    // navigation test: saveReminderFragment --> reminderListFragment
+    @Test
+    fun clickSaveButton_navigateToReminderListFragment() {
+
+        // GIVEN we are on the SaveReminder screen
+        val saveReminderScenario = launchFragmentInContainer<SaveReminderFragment>(Bundle(), R.style.AppTheme)
+        val navController = mock(NavController::class.java)
+        saveReminderScenario.onFragment {
+            Navigation.setViewNavController(it.view!!, navController)
+        }
+
+        // WHEN clicking on the "SAVE" button (FAB)
+        onView(withId(R.id.saveReminder)).perform(click())
+
+        // THEN - verify that we navigate back to the Reminder List screen (via popBackStack)
+        //
+        // note: this is done by setting the observable liveData '_viewModel.navigationCommand' to
+        //       'NavigationCommand.Back' (in private method SaveReminderViewModel.saveReminder)
+        //       ... which triggers 'findNavController().popBackStack()' (see: the implementation
+        //       of the 'navigationCommand' liveData observer in BaseFragment.kt)
+        verify(navController).popBackStack()
+
+    }
+
+    // navigation test: saveReminderFragment --> selectLocationFragment
+    @Test
+    fun clickLocation_navigateToSelectLocationFragment() {
+
+        // GIVEN we are on the SaveReminder screen
+        val saveReminderScenario = launchFragmentInContainer<SaveReminderFragment>(Bundle(), R.style.AppTheme)
+        val navController = mock(NavController::class.java)
+        saveReminderScenario.onFragment {
+            Navigation.setViewNavController(it.view!!, navController)
+        }
+
+        // WHEN clicking on the location button (FAB)
+        onView(withId(R.id.selectLocation)).perform(click())
+
+        // THEN - verify that we navigate to the select location screen
+        verify(navController).navigate(
+            SaveReminderFragmentDirections.actionSaveReminderFragmentToSelectLocationFragment()
+        )
+
+    }
+
 }
