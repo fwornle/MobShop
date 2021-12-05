@@ -49,7 +49,6 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
 
     // test data for (fake) DB
     private lateinit var reminderDtoList: MutableList<ReminderDTO>
-    private lateinit var reminderNew: ReminderDTO
 
     // fake data source (repo)
     private lateinit var reminderRepo: ReminderDataSource
@@ -161,7 +160,7 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
 
     // check for specific item from DB
     @Test
-    fun itemWithText_doesExist() = runBlockingTest {
+    fun itemWithText_doesExist() {
 
         // index of item in the list to be tested (off screen)
         val testItemIdx = 17
@@ -178,7 +177,7 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
 
     // check for specific item from DB at corresponding position in RV
     @Test
-    fun specificItemWithText_doesExistAtCorrectPosition() = runBlockingTest {
+    fun specificItemWithText_doesExistAtCorrectPosition() {
 
         // index of item in the list to be tested
         val testItemIdx = 1
