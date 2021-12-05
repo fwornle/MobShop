@@ -40,7 +40,7 @@ ext {
     // Sdk and tools
     // JetPack permission handling requireds API v24 and above.
     minSdkVersion = 24
-    targetSdkVersion = 31
+    targetSdkVersion = 29  // reduced from 31 to allow Toast test to run  (see: https://knowledge.udacity.com/questions/608423)
     compileSdkVersion = 31
 
     // App dependencies

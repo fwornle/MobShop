@@ -30,6 +30,10 @@ android {
     kotlinOptions {
         jvmTarget = '11'
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
     testOptions.unitTests {
         includeAndroidResources = true
         returnDefaultValues = true
@@ -39,10 +43,7 @@ android {
     buildFeatures {
         dataBinding true
     }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
-    }
+
 
     // workaround to avoid build errors when running fragment-test dependent tests
     // https://www.codegrepper.com/code-examples/java/More+than+one+file+was+found+with+OS+independent+path+%27META-INF%2FAL2.0%27.+when+running+android+test
