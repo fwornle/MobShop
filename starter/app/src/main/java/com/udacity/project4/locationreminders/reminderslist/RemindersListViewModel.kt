@@ -22,6 +22,7 @@ class RemindersListViewModel(
      * Get all the reminders from the DataSource and add them to the remindersList to be shown on the UI,
      * or show error if any
      */
+    @Suppress("UNCHECKED_CAST")
     fun loadReminders() {
         showLoading.value = true
         viewModelScope.launch {
