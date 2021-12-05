@@ -21,7 +21,7 @@ import com.udacity.project4.authentication.AuthenticationActivity
 
 class ReminderListFragment : BaseFragment() {
 
-    // use Koin to retrieve the ViewModel instance
+    // use Koin service locator to retrieve the ViewModel instance
     override val _viewModel: RemindersListViewModel by viewModel()
 
     // data binding for fragment_reminders.xml
