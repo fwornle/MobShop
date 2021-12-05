@@ -1,6 +1,5 @@
 package com.udacity.project4.locationreminders.savereminder
 
-import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.udacity.project4.R
@@ -9,6 +8,7 @@ import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.data.dto.Result
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
+import com.udacity.project4.locationreminders.testutils.MainCoroutineRule
 import com.udacity.project4.locationreminders.testutils.getOrAwaitValue
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -44,8 +44,16 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
 
     
     // test liveData
+    //    @get:Rule
+    //    var instantExecutorRule = InstantTaskExecutorRule()
+
+    // use our own dispatcher for coroutine testing (swaps out Dispatcher.Main to a version which
+    // can be used for testing, where asynchronous tasks should run synchronously)
+    //
+    // ... see: udacity Android Kotlin course, lesson 5.4: MainCoroutineRule and Injecting Dispatchers
     @get:Rule
-    var instantExecutorRule = InstantTaskExecutorRule()
+    var mainCoroutineRule = MainCoroutineRule()
+
 
     // run before each individual test
     @Before
@@ -198,7 +206,8 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
      * combined test - validate and save reminder
      * ******************************************************/
     @Test
-    fun `validateAndSaveReminder stores valid reminder in repository`()  = runBlockingTest {
+    fun `validateAndSaveReminder stores valid reminder in repository`()  =
+        mainCoroutineRule.runBlockingTest {
 
         // GIVEN...
         // ... some VALID reminder
@@ -218,7 +227,8 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     }
 
     @Test
-    fun `validateAndSaveReminder refused to store invalid reminder in repository`()  = runBlockingTest {
+    fun `validateAndSaveReminder refused to store invalid reminder in repository`()  =
+        mainCoroutineRule.runBlockingTest {
 
         // GIVEN...
         // ... some INVALID reminder
@@ -383,9 +393,9 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     // test repository ------------------------------------------------------------
 
     // getReminders
-    @ExperimentalCoroutinesApi
     @Test
-    fun `getReminders requests all reminders from local data source`() = runBlockingTest {
+    fun `getReminders requests all reminders from local data source`() =
+        mainCoroutineRule.runBlockingTest {
 
         // WHEN reminders are requested from the repository / location reminder repository
         val reminders = reminderRepo.getReminders() as Result.Success
@@ -396,9 +406,9 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     }
 
     // getReminder --> Result.Success
-    @ExperimentalCoroutinesApi
     @Test
-    fun `getReminder requests existing reminder from repository`() = runBlockingTest {
+    fun `getReminder requests existing reminder from repository`() =
+        mainCoroutineRule.runBlockingTest {
 
         // WHEN an existent reminder is requested from the location reminder repository
         val reminder = reminderRepo.getReminder(reminderDtoList.first().id) as Result.Success
@@ -409,9 +419,9 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     }
 
     // getReminder --> Result.Error
-    @ExperimentalCoroutinesApi
     @Test
-    fun `getReminder requests non-existing reminder from repository`() = runBlockingTest {
+    fun `getReminder requests non-existing reminder from repository`() =
+        mainCoroutineRule.runBlockingTest {
 
         // WHEN a non-existent reminder is requested from the location reminder repository
         val fakeId = "this is a fake ID"
@@ -423,9 +433,9 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     }
 
     // saveReminder
-    @ExperimentalCoroutinesApi
     @Test
-    fun `saveReminder writes new reminder to repository`() = runBlockingTest {
+    fun `saveReminder writes new reminder to repository`() =
+        mainCoroutineRule.runBlockingTest {
 
         // WHEN a new reminder is added to the location reminder repository
         reminderRepo.saveReminder(reminderNew)
@@ -437,9 +447,9 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
     }
 
     // deleteAllReminders
-    @ExperimentalCoroutinesApi
     @Test
-    fun `deleteAllReminders deletes all reminders from repository`() = runBlockingTest {
+    fun `deleteAllReminders deletes all reminders from repository`() =
+        mainCoroutineRule.runBlockingTest {
 
         // WHEN all reminders are deleted from the location reminder repository
         reminderRepo.deleteAllReminders()

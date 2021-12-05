@@ -6,6 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.udacity.project4.locationreminders.data.FakeDataSource
 import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
+import com.udacity.project4.locationreminders.testutils.MainCoroutineRule
 import com.udacity.project4.locationreminders.testutils.getOrAwaitValue
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -32,9 +33,12 @@ class RemindersListViewModelTest: AutoCloseKoinTest() {
     private lateinit var dataList: ArrayList<ReminderDataItem>
 
 
-    // test liveData (coroutines --> run synchronously in testing)
+    // use our own dispatcher for coroutine testing (swaps out Dispatcher.Main to a version which
+    // can be used for testing, where asynchronous tasks should run synchronously)
+    //
+    // ... see: udacity Android Kotlin course, lesson 5.4: MainCoroutineRule and Injecting Dispatchers
     @get:Rule
-    var instantExecutorRule = InstantTaskExecutorRule()
+    var mainCoroutineRule = MainCoroutineRule()
 
     // run before each individual test
     @Before
@@ -97,7 +101,8 @@ class RemindersListViewModelTest: AutoCloseKoinTest() {
      * ******************************************************************/
 
     @Test
-    fun `loadReminders fetches all reminders from repository and triggers observer of remindersList`()  = runBlockingTest {
+    fun `loadReminders fetches all reminders from repository and triggers observer of remindersList`() =
+        mainCoroutineRule.runBlockingTest {
 
         // GIVEN...
         // ... some data in the (fake) data source
@@ -118,7 +123,8 @@ class RemindersListViewModelTest: AutoCloseKoinTest() {
     }
 
     @Test
-    fun `loadReminders displays an error message (snackBar) when fetching from the local data source fails`()  = runBlockingTest {
+    fun `loadReminders displays an error message (snackBar) when fetching from the local data source fails`()  =
+        mainCoroutineRule.runBlockingTest {
 
         // GIVEN...
         // ... a broken (fake) data source (to simulate a read error)
