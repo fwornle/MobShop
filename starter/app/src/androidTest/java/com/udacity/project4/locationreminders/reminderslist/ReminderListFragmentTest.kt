@@ -31,6 +31,7 @@ import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.data.local.FakeDataSource
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
+import com.udacity.project4.util.ToastMatcher.Companion.onToast
 import org.junit.Before
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.stopKoin
@@ -38,6 +39,7 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 import org.koin.test.AutoCloseKoinTest
+import org.koin.test.inject
 import java.util.*
 
 
@@ -204,7 +206,25 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
     }
 
 
-    //    TODO: add testing for the error messages.
+    // LiveData: showErrorMessage
+    @Test
+    fun setError_ErrorMessageIsDisplayed() = runBlockingTest {
+
+        // GIVEN...
+        // ... access to the viewModel (from Koin service locator module)
+        val _viewModel = inject<RemindersListViewModel>().value
+
+        // WHEN...
+        // ... setting liveData value to error message
+        //     --> use postValue, as this is on a background thread (within the test environment)
+        val testToastText = "some error occurred"
+        _viewModel.showErrorMessage.postValue(testToastText)
+
+        // THEN the Toast should be displayed
+        // ... onToast method (from ToastMatcher - author: see ToastMatcher.kt)
+        onToast(testToastText).check(matches(isDisplayed()))
+
+    }
 
 
     // navigation test: RemindersList --> SaveReminder
