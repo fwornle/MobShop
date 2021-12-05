@@ -32,7 +32,7 @@ class RemindersListViewModelTest: AutoCloseKoinTest() {
     private lateinit var dataList: ArrayList<ReminderDataItem>
 
 
-    // test liveData
+    // test liveData (coroutines --> run synchronously in testing)
     @get:Rule
     var instantExecutorRule = InstantTaskExecutorRule()
 
