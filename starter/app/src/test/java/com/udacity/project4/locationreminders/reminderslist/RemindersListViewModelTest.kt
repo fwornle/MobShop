@@ -1,6 +1,6 @@
 package com.udacity.project4.locationreminders.reminderslist
 
-import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.udacity.project4.locationreminders.data.FakeDataSource
@@ -18,6 +18,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.test.AutoCloseKoinTest
+import org.robolectric.Shadows.shadowOf
 import java.util.*
 
 @ExperimentalCoroutinesApi
@@ -142,9 +143,54 @@ class RemindersListViewModelTest: AutoCloseKoinTest() {
         // THEN...
         // ... the observer of liveData showSnackBar is triggered (and value set to error message)
         // ... the observer of liveData showNoData is triggered (and value set to true)
-        assertThat(_viewModel.showSnackBar.getOrAwaitValue(), equalTo("Could not fetch reminders from (fake) local storage."))
-        assertThat(_viewModel.showNoData.getOrAwaitValue(), equalTo(true))
+        assertThat(_viewModel.showSnackBar.getOrAwaitValue(),
+            equalTo("Could not fetch reminders from (fake) local storage."))
+        assertThat(_viewModel.showNoData.getOrAwaitValue(),
+            equalTo(true))
 
     }
+
+    // test loading spinner
+    @Test
+    fun loadingSpinner_appearsAndDisappears() {
+
+            // GIVEN...
+            // ... some data in the (fake) data source
+            reminderRepo = FakeDataSource(reminderDtoList)
+
+            // ... and a fresh viewModel with this data source injected (via constructor)
+            _viewModel = RemindersListViewModel(
+                ApplicationProvider.getApplicationContext(),
+                reminderRepo,
+            )
+
+            // WHEN calling function loadReminders
+            mainCoroutineRule.pauseDispatcher()
+            _viewModel.loadReminders()
+
+            // check that loading spinner has been started
+            assertThat(
+                _viewModel.showLoading.getOrAwaitValue(),
+                equalTo(true)
+            )
+            mainCoroutineRule.resumeDispatcher()
+
+            // drain the (roboelectric) main looper
+            //
+            // http://robolectric.org/blog/2019/06/04/paused-looper/
+            // if you see test failures like Main looper has queued unexecuted runnables, you may
+            // need to insert shadowOf(getMainLooper()).idle() calls to your test to drain the main
+            // Looper. Its recommended to step through your test code with a watch set on
+            // Looper.getMainLooper().getQueue() to see the status of the looper queue, to determine
+            // the appropriate point to add a shadowOf(getMainLooper()).idle() call.
+            shadowOf(Looper.getMainLooper()).idle()
+
+            // check that loading spinner has been stopped
+            assertThat(
+                _viewModel.showLoading.getOrAwaitValue(),
+                equalTo(false)
+            )
+
+        }
 
 }
