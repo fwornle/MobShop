@@ -207,6 +207,9 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
 
 
     // LiveData: showErrorMessage
+    //
+    // Dec 2021:  test still fails with API 30+, as there is a currently unresolved problem with
+    //            the espresso library, see: https://knowledge.udacity.com/questions/608423
     @Test
     fun setError_ErrorMessageIsDisplayed() = runBlockingTest {
 
