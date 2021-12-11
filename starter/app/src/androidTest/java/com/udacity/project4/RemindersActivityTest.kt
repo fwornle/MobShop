@@ -16,9 +16,8 @@ import androidx.test.espresso.matcher.ViewMatchers.*
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
-import androidx.test.uiautomator.By
-import androidx.test.uiautomator.UiDevice
-import androidx.test.uiautomator.Until
+import androidx.test.rule.GrantPermissionRule
+import androidx.test.uiautomator.*
 import com.udacity.project4.authentication.AuthenticationActivity
 import com.udacity.project4.locationreminders.RemindersActivity
 import com.udacity.project4.locationreminders.data.ReminderDataSource
@@ -34,6 +33,7 @@ import kotlinx.coroutines.runBlocking
 import org.hamcrest.Matcher
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -61,6 +61,7 @@ class RemindersActivityTest: AutoCloseKoinTest() {
     private lateinit var testReminder: ReminderDTO
 
     // UI Automator - used to click on system elements during test
+    // ... see: https://alexzh.com/ui-testing-of-android-runtime-permissions/ for some background
     private val device: UiDevice
 
     init {
@@ -196,6 +197,12 @@ class RemindersActivityTest: AutoCloseKoinTest() {
 
     }
 
+    // all permissions granted...
+    @get:Rule
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+        android.Manifest.permission.ACCESS_FINE_LOCATION,
+        android.Manifest.permission.ACCESS_NETWORK_STATE
+    )
 
     // E2E testing... SaveRemindersFragment
     @Suppress("UNCHECKED_CAST")
@@ -245,14 +252,14 @@ class RemindersActivityTest: AutoCloseKoinTest() {
         onView(withId(R.id.clSelectLocationFragment)).check((matches(isDisplayed())))
 
 //        // allow foreground access to location data (map)
-//        val permissionSettings = device.wait(Until.findObject(
-//            By.res("com.android.permissioncontroller:id/permission_allow_foreground_only_button")
-//                .text("While using the app")
-//        ), 4000)
+//        val permissionSettings = device.findObject(UiSelector()
+//            .resourceId("com.android.permissioncontroller:id/permission_allow_foreground_only_button")
+//            //.text("While using the app")
+//        )
 //        permissionSettings.click()
-
-        // wait a little... to allow user to give permission
-        onView(isRoot()).perform(waitFor(3000))
+//
+//        // wait a little... to allow user to give permission
+//        onView(isRoot()).perform(waitFor(3000))
 
         // go back
         Espresso.pressBack()
@@ -279,7 +286,7 @@ class RemindersActivityTest: AutoCloseKoinTest() {
     // introduce a short delay in test execution, after having clicked on user account (using
     // UI Automator) --> need some time to pass, otherwise the test is flaky
     // https://stackoverflow.com/questions/52818524/delay-test-in-espresso-android-without-freezing-main-thread
-    fun waitFor(delay: Long): ViewAction {
+    private fun waitFor(delay: Long): ViewAction {
         return object : ViewAction {
             override fun getConstraints(): Matcher<View> = isRoot()
             override fun getDescription(): String = "wait for $delay milliseconds"
@@ -313,7 +320,7 @@ class RemindersActivityTest: AutoCloseKoinTest() {
         // click on the login button
         loginBtn.perform(click())
 
-        // click on user account "Frank Douvre"
+        // click on the user provided email account
         // val emailAccount = device.wait(Until.findObject(By.text("Frank Douvre")), 2000)
         val emailAccount = device.findObject(
             By.res("com.google.android.gms:id/credential_primary_label")
