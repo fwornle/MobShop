@@ -12,9 +12,7 @@ import com.udacity.project4.databinding.ActivityAuthenticationBinding
 import com.udacity.project4.locationreminders.RemindersActivity
 import timber.log.Timber
 import com.google.firebase.auth.FirebaseAuth
-
-
-
+import com.udacity.project4.utils.wrapEspressoIdlingResource
 
 
 /**
@@ -39,7 +37,7 @@ class AuthenticationActivity : AppCompatActivity() {
         if (auth.currentUser != null) {
 
             // already authenticated --> enter app
-            sendAuthUserToMainApp(auth)
+            wrapEspressoIdlingResource { sendAuthUserToMainApp(auth) }
 
         } else {
 
@@ -70,7 +68,8 @@ class AuthenticationActivity : AppCompatActivity() {
             .build()
 
         // firebaseUI: launch sign-in intent
-        signInLauncher.launch(signInIntent)
+        wrapEspressoIdlingResource { signInLauncher.launch(signInIntent) }
+
     }
 
     // redirect successfully authenticated users to the main app
