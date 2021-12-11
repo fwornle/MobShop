@@ -20,7 +20,17 @@ android {
 
         // FirebaseUI includes language support for all languages --> limit to English
         resConfigs "en"
+
+        // The following argument makes the Android Test Orchestrator run its
+        // "pm clear" command after each test invocation. This command ensures
+        // that the app's state is completely cleared between tests.
+        testInstrumentationRunnerArguments.clearPackageData = "true"
     }
+
+    testOptions {
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
+    }
+
     buildTypes {
         release {
             minifyEnabled false
@@ -125,6 +135,14 @@ dependencies {
     testImplementation "org.mockito:mockito-core:$mockitoVersion"
     testImplementation "io.insert-koin:koin-test:$koinVersion"
     testImplementation "io.insert-koin:koin-test-junit4:$koinVersion"
+
+    // Test Orchestration
+    androidTestImplementation('androidx.test:runner:1.4.0')
+    androidTestUtil('androidx.test:orchestrator:1.4.0')
+    androidTestImplementation('androidx.test.espresso:espresso-intents:3.4.0')
+
+    // uiAutomator Testing
+    androidTestImplementation "androidx.test.uiautomator:uiautomator:$uiAutomatorVersion"
 
     // AndroidX Test - JVM testing
     testImplementation "androidx.test:core-ktx:$androidXTestCoreVersion"

@@ -1,16 +1,22 @@
 package com.udacity.project4
 
 import android.app.Application
+import android.view.View
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.Espresso.pressBack
+
 import androidx.test.espresso.IdlingRegistry
-import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.UiController
+import androidx.test.espresso.ViewAction
+import androidx.test.espresso.action.ViewActions.*
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.*
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
 import com.udacity.project4.authentication.AuthenticationActivity
 import com.udacity.project4.locationreminders.RemindersActivity
 import com.udacity.project4.locationreminders.data.ReminderDataSource
@@ -23,11 +29,13 @@ import com.udacity.project4.util.DataBindingIdlingResource
 import com.udacity.project4.util.monitorActivity
 import com.udacity.project4.utils.EspressoIdlingResource
 import kotlinx.coroutines.runBlocking
+import org.hamcrest.Matcher
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.core.component.inject
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
@@ -42,6 +50,7 @@ class RemindersActivityTest :
     AutoCloseKoinTest() {// Extended Koin Test - embed autoclose @after method to close Koin after every test
 
     private lateinit var repository: ReminderDataSource
+    private lateinit var _viewModel: SaveReminderViewModel
     private lateinit var appContext: Application
 
     // an idling resource that waits for Data Binding to have no pending bindings
@@ -132,7 +141,7 @@ class RemindersActivityTest :
     }
 
 
-    // E2E testing...
+    // E2E testing... RemindersListFragment
     @Suppress("UNCHECKED_CAST")
     @Test
     fun remindersActivityTest_fragmentReminders() = runBlocking {
@@ -178,8 +187,98 @@ class RemindersActivityTest :
 
     }
 
-    // E2E testing...
+
+    // E2E testing... SaveRemindersFragment
     @Suppress("UNCHECKED_CAST")
+    @Test
+    fun remindersActivityTest_fragmentSaveReminder() = runBlocking {
+
+        // add a reminder to the repository
+        repository.saveReminder(testReminder)
+
+        // fetch SaveReminderViewModel to set some test data
+        _viewModel = inject<SaveReminderViewModel>().value
+        _viewModel.reminderSelectedLocationStr.postValue("Espresso test location")
+
+        // startup with the RemindersActivity screen (fragment container)
+        //
+        // ... done manually here (as opposed to @get:Rule
+        //     so we get a chance to initialize the repo first (see above)
+        //
+        // ... need to launch the *activity* rather than the *fragment* to allow for navigation
+        //     to take place (as the activity holds the fragment container)
+        val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+
+        // monitor activityScenario for "idling" (used to flow control the espresso tests)
+        dataBindingIdlingResource.monitorActivity(activityScenario)
+
+        // verify that the ReminderListFragment is in view
+        onView(withId(R.id.reminderssRecyclerView)).check((matches(isDisplayed())))
+
+        // click on the "save reminder" and navigate to SaveReminder fragment
+        onView(withId(R.id.addReminderFAB)).perform(click())
+
+        // verify that the SaveRemindersFragment is in view
+        onView(withId(R.id.clSaveReminderFragment)).check((matches(isDisplayed())))
+
+        // fill out the form...
+        onView(withId(R.id.reminderTitle)).perform(clearText(), typeText("Have an espresso..."))
+        onView(withId(R.id.reminderTitle)).check(matches(withText("Have an espresso...")))
+        onView(withId(R.id.reminderDescription)).perform(clearText(), typeText("Have an espresso..."))
+        onView(withId(R.id.reminderDescription)).check(matches(withText("Have an espresso...")))
+
+        // check location information
+        onView(withId(R.id.selectedLocation)).check(matches(withText("Espresso test location")))
+
+
+        // click on Reminder Location - should navigate to select location screen
+        onView(withId(R.id.selectLocation)).perform(click())
+        onView(withId(R.id.clSelectLocationFragment)).check((matches(isDisplayed())))
+
+        // go back
+        pressBack()
+        onView(withId(R.id.clSaveReminderFragment)).check((matches(isDisplayed())))
+
+        // click on the "save reminder" and travel to SaveReminder fragment
+        onView(withId(R.id.saveReminder)).perform(click())
+
+        // verify that we have navigated to the saveReminder fragment
+        onView(withId(R.id.clSaveReminderFragment)).check((matches(isDisplayed())))
+
+        // go back to the remindersList fragment
+        pressBack()
+
+        // verify that we have navigated back to the remindersList fragment
+        onView(withId(R.id.reminderssRecyclerView)).check((matches(isDisplayed())))
+
+        // make sure the activityScenario is closed before resetting the db
+        activityScenario.close()
+
+    }
+
+
+    // UI Automator - used to click on system elements during test
+    private val device: UiDevice
+
+    init {
+        val instrumentation = getInstrumentation()
+        device = UiDevice.getInstance(instrumentation)
+    }
+
+    // introduce a short delay in test execution, after having clicked on user account (using
+    // UI Automator) --> need some time to pass, otherwise the test is flaky
+    // https://stackoverflow.com/questions/52818524/delay-test-in-espresso-android-without-freezing-main-thread
+    fun waitFor(delay: Long): ViewAction {
+        return object : ViewAction {
+            override fun getConstraints(): Matcher<View> = isRoot()
+            override fun getDescription(): String = "wait for $delay milliseconds"
+            override fun perform(uiController: UiController, v: View?) {
+                uiController.loopMainThreadForAtLeast(delay)
+            }
+        }
+    }
+
+    // E2E testing... AuthenticationActivity
     @Test
     fun remindersActivityTest_loginActivity() = runBlocking {
 
@@ -202,6 +301,16 @@ class RemindersActivityTest :
 
         // click on the login button
         loginBtn.perform(click())
+
+        // click on user account "Frank Douvre"
+        // val emailAccount = device.wait(Until.findObject(By.text("Frank Douvre")), 2000)
+        val emailAccount = device.findObject(
+            By.res("com.google.android.gms:id/credential_primary_label").text("Frank Douvre")
+        )
+        emailAccount.click()
+
+        // wait a little... to remove flakiness
+        onView(isRoot()).perform(waitFor(2000))
 
         // verify that we have navigated to the remindersList fragment
         onView(withId(R.id.reminderssRecyclerView)).check((matches(isDisplayed())))

@@ -38,6 +38,7 @@ class AuthenticationActivity : AppCompatActivity() {
 
             // already authenticated --> enter app
             wrapEspressoIdlingResource { sendAuthUserToMainApp(auth) }
+            // sendAuthUserToMainApp(auth)
 
         } else {
 
@@ -68,6 +69,7 @@ class AuthenticationActivity : AppCompatActivity() {
             .build()
 
         // firebaseUI: launch sign-in intent
+        // signInLauncher.launch(signInIntent)
         wrapEspressoIdlingResource { signInLauncher.launch(signInIntent) }
 
     }
@@ -85,11 +87,13 @@ class AuthenticationActivity : AppCompatActivity() {
 
         // send user to "RemindersActivity"
         val intent = Intent(applicationContext, RemindersActivity::class.java)
-        startActivity(
-            intent
-                .putExtra("userName", user?.displayName)
-                .putExtra("isNewUser", isNewUser)
-        )
+        wrapEspressoIdlingResource {
+            startActivity(
+                intent
+                    .putExtra("userName", user?.displayName)
+                    .putExtra("isNewUser", isNewUser)
+            )
+        }
 
         // this activity is done
         finish()
