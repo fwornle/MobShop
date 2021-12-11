@@ -4,6 +4,7 @@ import android.app.Application
 import android.view.View
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
+import androidx.test.espresso.Espresso
 import androidx.test.espresso.Espresso.onView
 
 import androidx.test.espresso.IdlingRegistry
@@ -17,6 +18,7 @@ import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
 import com.udacity.project4.authentication.AuthenticationActivity
 import com.udacity.project4.locationreminders.RemindersActivity
 import com.udacity.project4.locationreminders.data.ReminderDataSource
@@ -46,8 +48,7 @@ import java.util.*
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 // END TO END test to black box test the app
-class RemindersActivityTest :
-    AutoCloseKoinTest() {// Extended Koin Test - embed autoclose @after method to close Koin after every test
+class RemindersActivityTest: AutoCloseKoinTest() {
 
     private lateinit var repository: ReminderDataSource
     private lateinit var _viewModel: SaveReminderViewModel
@@ -58,6 +59,15 @@ class RemindersActivityTest :
 
     // test data
     private lateinit var testReminder: ReminderDTO
+
+    // UI Automator - used to click on system elements during test
+    private val device: UiDevice
+
+    init {
+        // set-up UI Automator
+        val instrumentation = getInstrumentation()
+        device = UiDevice.getInstance(instrumentation)
+    }
 
 
     /**
@@ -164,8 +174,7 @@ class RemindersActivityTest :
         // verify that the remindersList fragment is in view
         onView(withId(R.id.reminderssRecyclerView)).check((matches(isDisplayed())))
 
-        // click on the location reminder on the list and verify that all the data is correct
-        onView(withText(testReminder.title)).perform(click())
+        // verify that the location reminder from the DB is displayed correctly
         onView(withId(R.id.title)).check(matches(withText(testReminder.title)))
         onView(withId(R.id.description)).check(matches(withText(testReminder.description)))
         onView(withId(R.id.location)).check(matches(withText(testReminder.location)))
@@ -177,7 +186,7 @@ class RemindersActivityTest :
         onView(withId(R.id.clSaveReminderFragment)).check((matches(isDisplayed())))
 
         // go back to the remindersList fragment
-        pressBack()
+        Espresso.pressBack()
 
         // verify that we have navigated back to the remindersList fragment
         onView(withId(R.id.reminderssRecyclerView)).check((matches(isDisplayed())))
@@ -235,8 +244,18 @@ class RemindersActivityTest :
         onView(withId(R.id.selectLocation)).perform(click())
         onView(withId(R.id.clSelectLocationFragment)).check((matches(isDisplayed())))
 
+//        // allow foreground access to location data (map)
+//        val permissionSettings = device.wait(Until.findObject(
+//            By.res("com.android.permissioncontroller:id/permission_allow_foreground_only_button")
+//                .text("While using the app")
+//        ), 4000)
+//        permissionSettings.click()
+
+        // wait a little... to allow user to give permission
+        onView(isRoot()).perform(waitFor(3000))
+
         // go back
-        pressBack()
+        Espresso.pressBack()
         onView(withId(R.id.clSaveReminderFragment)).check((matches(isDisplayed())))
 
         // click on the "save reminder" and travel to SaveReminder fragment
@@ -246,7 +265,7 @@ class RemindersActivityTest :
         onView(withId(R.id.clSaveReminderFragment)).check((matches(isDisplayed())))
 
         // go back to the remindersList fragment
-        pressBack()
+        Espresso.pressBack()
 
         // verify that we have navigated back to the remindersList fragment
         onView(withId(R.id.reminderssRecyclerView)).check((matches(isDisplayed())))
@@ -256,14 +275,6 @@ class RemindersActivityTest :
 
     }
 
-
-    // UI Automator - used to click on system elements during test
-    private val device: UiDevice
-
-    init {
-        val instrumentation = getInstrumentation()
-        device = UiDevice.getInstance(instrumentation)
-    }
 
     // introduce a short delay in test execution, after having clicked on user account (using
     // UI Automator) --> need some time to pass, otherwise the test is flaky
@@ -305,7 +316,8 @@ class RemindersActivityTest :
         // click on user account "Frank Douvre"
         // val emailAccount = device.wait(Until.findObject(By.text("Frank Douvre")), 2000)
         val emailAccount = device.findObject(
-            By.res("com.google.android.gms:id/credential_primary_label").text("Frank Douvre")
+            By.res("com.google.android.gms:id/credential_primary_label")
+              //  .text("Frank Douvre")
         )
         emailAccount.click()
 
