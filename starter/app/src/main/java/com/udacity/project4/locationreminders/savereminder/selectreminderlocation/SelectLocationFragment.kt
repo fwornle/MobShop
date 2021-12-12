@@ -166,6 +166,9 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         map.addMarker(MarkerOptions().position(youAreHere).title(getString(R.string.anonymous_place)))
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(youAreHere, zoomLevel))
 
+        // ask user to click on the map to select a location for the location reminder
+        _viewModel.showSnackBar.value = getString(R.string.map_user_prompt)
+
     }  // onMapReady
 
 
