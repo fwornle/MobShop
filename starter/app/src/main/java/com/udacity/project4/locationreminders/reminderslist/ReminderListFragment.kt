@@ -12,6 +12,7 @@ import com.udacity.project4.utils.setTitle
 import com.udacity.project4.utils.setup
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import android.content.Intent
+import android.widget.Toast
 
 import com.google.android.gms.tasks.OnCompleteListener
 
@@ -56,6 +57,11 @@ class ReminderListFragment : BaseFragment() {
 
             // update Reminders list
             _viewModel.loadReminders()
+
+            // empty list? --> inform user that there is no point swiping for updates...
+            if (_viewModel.remindersList.value?.isEmpty() == true) {
+                Toast.makeText(activity, getString(R.string.error_add_reminders), Toast.LENGTH_SHORT).show()
+            }
 
         }
 

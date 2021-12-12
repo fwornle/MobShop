@@ -40,5 +40,6 @@
     <string name="description">Description</string>
     <string name="location">Location</string>
     <string name="map_user_prompt">Select a point of interest to create a reminder.</string>
+    <string name="error_add_reminders">Add some reminders first...</string>
 
 </resources>
