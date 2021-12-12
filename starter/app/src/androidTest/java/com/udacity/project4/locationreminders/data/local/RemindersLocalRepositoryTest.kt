@@ -21,12 +21,24 @@ import java.util.*
 @MediumTest
 class RemindersLocalRepositoryTest {
 
+//    // fake DB (room, in-memory)
+//    private lateinit var fakeDB: RemindersDatabase
+//    private lateinit var dao: RemindersDao
+
     // test data for (fake) DB
     private lateinit var reminderDtoList: MutableList<ReminderDTO>
     private lateinit var newReminderDTO: ReminderDTO
 
     // fake data source (repo)
     private lateinit var reminderRepo: ReminderDataSource
+
+//    // populate the fake DB / repo
+//    private suspend fun populateFakeDB() {
+//        reminderDtoList.map {
+//            reminderRepo.saveReminder(it)
+//        }
+//    }
+
 
     @Before
     fun setUp() {
@@ -59,7 +71,27 @@ class RemindersLocalRepositoryTest {
         )
 
         // get a fresh fake data source (repository)
+        // ... avoid using the DAO to limit test scope to the repository alone (excluding the DAO)
         reminderRepo = FakeDataSource(reminderDtoList)
+
+//        // create fake datasource ... also using the DAO
+//        fakeDB = Room.inMemoryDatabaseBuilder(
+//            ApplicationProvider.getApplicationContext(),
+//            RemindersDatabase::class.java,
+//        )
+//            .allowMainThreadQueries()
+//            .build()
+//
+//        // fetch DAO
+//        dao = fakeDB.reminderDao()
+//
+//        // create repository with DAO of fake DB
+//        reminderRepo = RemindersLocalRepository(dao)
+//
+//        // populate DB with above defined data
+//        runBlocking {
+//            populateFakeDB()
+//        }
 
     }  // setUp()
 
