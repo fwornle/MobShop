@@ -17,6 +17,8 @@ import com.google.android.gms.tasks.OnCompleteListener
 
 import com.firebase.ui.auth.AuthUI
 import com.udacity.project4.authentication.AuthenticationActivity
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout.OnRefreshListener
 
 
 class ReminderListFragment : BaseFragment() {
@@ -47,7 +49,15 @@ class ReminderListFragment : BaseFragment() {
         setTitle(getString(R.string.app_name))
 
         // install listener for SwipeRefreshLayout view
-        binding.refreshLayout.setOnRefreshListener { _viewModel.loadReminders() }
+        binding.refreshLayout.setOnRefreshListener {
+
+            // deactivate SwipeRefreshLayout spinner
+            binding.refreshLayout.setRefreshing(false)
+
+            // update Reminders list
+            _viewModel.loadReminders()
+
+        }
 
         return binding.root
     }

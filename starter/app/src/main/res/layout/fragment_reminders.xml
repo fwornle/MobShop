@@ -45,6 +45,7 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 />
 
+            <!-- centered (red) progress bar, indicating the loading state when accessing the DB -->
             <ProgressBar
                 android:id="@+id/progressBar"
                 android:layout_width="wrap_content"
