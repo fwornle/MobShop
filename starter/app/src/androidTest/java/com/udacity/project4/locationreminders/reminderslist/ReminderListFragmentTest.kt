@@ -1,6 +1,7 @@
 package com.udacity.project4.locationreminders.reminderslist
 
 import android.os.Bundle
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.testing.FragmentScenario
 import androidx.fragment.app.testing.launchFragmentInContainer
 import androidx.navigation.NavController
@@ -21,7 +22,6 @@ import com.udacity.project4.R
 import com.udacity.project4.locationreminders.savereminder.SaveReminderFragment
 import com.udacity.project4.locationreminders.savereminder.SaveReminderFragmentDirections
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
@@ -31,7 +31,8 @@ import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.data.local.FakeDataSource
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
-import com.udacity.project4.util.ToastMatcher.Companion.onToast
+import com.udacity.project4.util.DataBindingIdlingResource
+import com.udacity.project4.util.monitorFragment
 import org.junit.Before
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.stopKoin
@@ -39,12 +40,13 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 import org.koin.test.AutoCloseKoinTest
-import org.koin.test.inject
+
 import java.util.*
 
 
 @RunWith(AndroidJUnit4::class)
 @ExperimentalCoroutinesApi
+@Suppress("UNCHECKED_CAST")
 // UI Testing
 @MediumTest
 class ReminderListFragmentTest: AutoCloseKoinTest() {
@@ -59,6 +61,9 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
     // ... and configure it with the mock(ito)ed NavController
     private lateinit var reminderListFragementScenario: FragmentScenario<ReminderListFragment>
     private lateinit var navController: NavController
+
+    // an idling resource that waits for Data Binding to have no pending bindings
+    private val dataBindingIdlingResource = DataBindingIdlingResource()
 
     // (alternatively... but then the repo is not swapped-out to the fake data source)
     //
@@ -140,7 +145,13 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
         }
 
         // launch reminder list fragment
+        // ... using "launchINCONTAINER" to attach the fragment to an (empty) activity
+        //     see: https://developer.android.com/guide/fragments/test#declare-dependencies
         reminderListFragementScenario = launchFragmentInContainer(Bundle(), R.style.AppTheme)
+
+        // monitor fragmentScenario for "idling" (used to flow control the espresso tests)
+        dataBindingIdlingResource.monitorFragment(
+            reminderListFragementScenario as FragmentScenario<Fragment>)
 
         // attach the navController (for navigation tests)
         navController = mock(NavController::class.java)
@@ -230,6 +241,7 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
 
     }
     */
+
 
     // navigation test: RemindersList --> SaveReminder
     @Test
