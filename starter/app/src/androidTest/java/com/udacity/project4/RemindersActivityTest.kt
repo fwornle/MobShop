@@ -10,6 +10,7 @@ import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.IdlingRegistry
 import androidx.test.espresso.UiController
 import androidx.test.espresso.ViewAction
+import androidx.test.espresso.action.ViewActions
 import androidx.test.espresso.action.ViewActions.*
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.*
@@ -44,6 +45,10 @@ import org.koin.dsl.module
 import org.koin.test.AutoCloseKoinTest
 import org.koin.test.get
 import java.util.*
+import androidx.test.uiautomator.UiSelector
+
+
+
 
 @RunWith(AndroidJUnit4::class)
 @LargeTest
@@ -291,6 +296,66 @@ class RemindersActivityTest: AutoCloseKoinTest() {
 
         // verify that we have navigated back to the remindersList fragment
         onView(withId(R.id.reminderssRecyclerView)).check((matches(isDisplayed())))
+
+        // make sure the activityScenario is closed before resetting the db
+        activityScenario.close()
+
+    }
+
+
+    // E2E testing... SelectLocationFragment
+    @Suppress("UNCHECKED_CAST")
+    @Test
+    fun remindersActivityTest_fragmentSelectLocation() = runBlocking {
+
+
+        // startup with the RemindersActivity screen (fragment container)
+        //
+        // ... done manually here (as opposed to @get:Rule
+        //     so we get a chance to initialize the repo first (see above)
+        //
+        // ... need to launch the *activity* rather than the *fragment* to allow for navigation
+        //     to take place (as the activity holds the fragment container)
+        val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+
+        // monitor activityScenario for "idling" (used to flow control the espresso tests)
+        dataBindingIdlingResource.monitorActivity(activityScenario)
+
+        // verify that the ReminderListFragment is in view
+        onView(withId(R.id.reminderssRecyclerView)).check((matches(isDisplayed())))
+
+        // click on the "save reminder" and navigate to SaveReminder fragment
+        onView(withId(R.id.addReminderFAB)).perform(click())
+
+        // verify that the SaveRemindersFragment is in view
+        onView(withId(R.id.clSaveReminderFragment)).check((matches(isDisplayed())))
+
+        // click on Reminder Location - should navigate to select location screen
+        onView(withId(R.id.selectLocation)).perform(click())
+        onView(withId(R.id.clSelectLocationFragment)).check((matches(isDisplayed())))
+
+        // select location (click wherever I am...)
+       onView(withId(R.id.map)).perform(longClick())
+        
+        // add location description
+        val locationText = "I was here..."
+        onView(withId(R.id.etLocationName)).perform(
+            clearText(),
+            typeText(locationText),
+            closeSoftKeyboard(),
+        )
+
+        onView(withId(R.id.etLocationName)).check(matches(withText(locationText)))
+
+        // click on OK
+        onView(withId(R.id.btnOk)).perform(click())
+
+        // check: are we back?
+        onView(withId(R.id.clSaveReminderFragment)).check((matches(isDisplayed())))
+
+        // has the chosen location been saved?
+        onView(withId(R.id.selectedLocation)).check(matches(withText(locationText)))
+
 
         // make sure the activityScenario is closed before resetting the db
         activityScenario.close()
