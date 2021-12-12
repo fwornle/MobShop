@@ -1,5 +1,6 @@
 package com.udacity.project4.locationreminders.data.local
 
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -7,14 +8,16 @@ import androidx.test.filters.MediumTest
 import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.data.dto.Result
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.asExecutor
+import kotlinx.coroutines.test.TestCoroutineDispatcher
+import kotlinx.coroutines.test.TestCoroutineScope
 import kotlinx.coroutines.test.runBlockingTest
 import org.hamcrest.CoreMatchers
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.*
@@ -32,16 +35,22 @@ class RemindersLocalRepositoryTest {
     // fake data source (repo)
     private lateinit var reminderRepo: ReminderDataSource
 
-//    // fake DB (room, in-memory)
-//    private lateinit var fakeDB: RemindersDatabase
-//    private lateinit var dao: RemindersDao
-//
-//    // populate the fake DB / repo
-//    private suspend fun populateFakeDB() {
-//        reminderDtoList.map {
-//            reminderRepo.saveReminder(it)
-//        }
-//    }
+    // fake DB (room, in-memory)
+    private lateinit var fakeDB: RemindersDatabase
+    private lateinit var dao: RemindersDao
+
+    // populate the fake DB / repo
+    private suspend fun populateFakeDB() {
+        reminderDtoList.map {
+            reminderRepo.saveReminder(it)
+        }
+    }
+
+    // specify query and transaction executors for Room
+    // ... necessary to avoid "java.lang.IllegalStateException: This job has not completed yet"
+    //     error, see: https://medium.com/@eyalg/testing-androidx-room-kotlin-coroutines-2d1faa3e674f
+    private val testDispatcher = TestCoroutineDispatcher()
+    private val testScope = TestCoroutineScope(testDispatcher)
 
 
     @Before
@@ -74,31 +83,28 @@ class RemindersLocalRepositoryTest {
             UUID.randomUUID().toString(),
         )
 
-        // get a fresh fake data source (repository)
-        // ... avoid using the DAO to limit test scope to the repository alone (excluding the DAO)
-        reminderRepo = FakeDataSource(reminderDtoList)
+        // create fake datasource ... also using the DAO
+        fakeDB = Room.inMemoryDatabaseBuilder(
+            ApplicationProvider.getApplicationContext(),
+            RemindersDatabase::class.java,
+        )
+            // use TestCoroutineDispatcher for Room 'transaction executions' - this way, all
+            // suspended functions of Room's DAO run inside the same Coroutine scope which is also
+            // used for the tests (testScope.runblocking { ... } - see below)
+            .setTransactionExecutor(testDispatcher.asExecutor())
+            .setQueryExecutor(testDispatcher.asExecutor())
+            .allowMainThreadQueries()
+            .build()
 
-//        // create fake datasource ... also using the DAO
-//        fakeDB = Room.inMemoryDatabaseBuilder(
-//            ApplicationProvider.getApplicationContext(),
-//            RemindersDatabase::class.java,
-//        )
-//            .allowMainThreadQueries()
-//            .build()
-//
-//        // fetch DAO
-//        dao = fakeDB.reminderDao()
-//
-//        // create repository with DAO of fake DB
-//        reminderRepo = RemindersLocalRepository(
-//            dao,
-//            Dispatchers.Main,  // this one is swapped out in tests running in runningBlockingTest
-//        )
-//
-//        // populate DB with above defined data
-//        runBlocking {
-//            populateFakeDB()
-//        }
+        // fetch DAO
+        dao = fakeDB.reminderDao()
+
+        // create repository with DAO of fake DB
+        reminderRepo = RemindersLocalRepository(
+            dao,
+            // ensure Room (& the DAO & the repo) and the test use the same coroutine dispatcher
+            testDispatcher,
+        )
 
     }  // setUp()
 
@@ -115,15 +121,24 @@ class RemindersLocalRepositoryTest {
      *
      */
 
+    // Executes each task synchronously using Architecture Components.
+    @get:Rule
+    var instantExecutorRule = InstantTaskExecutorRule()
+
+
     // test repo interface method 'getReminders'
+    // ... use our own TestCoroutineScope (testScope, see above) to ensure that both the test and
+    //     Room's DAO functions run in the same scope
     @Test
     @Suppress("UNCHECKED_CAST")
-    fun repository_getReminders() = runBlockingTest {
+    fun repository_getReminders() = testScope.runBlockingTest {
+
+        // store test data in fake DB
+        populateFakeDB()
 
         // fetch reminders from (fake) repo
-        val result = reminderRepo.getReminders()
 
-        when (result) {
+        when (val result = reminderRepo.getReminders()) {
             is Result.Success<*> -> {
 
                 // check all data records
@@ -151,13 +166,15 @@ class RemindersLocalRepositoryTest {
     // test repo interface method 'getReminder' - existing reminder
     @Test
     @Suppress("UNCHECKED_CAST")
-    fun repository_getReminderReminderExistsInDB() = runBlockingTest {
+    fun repository_getReminderReminderExistsInDB() = testScope.runBlockingTest {
+
+        // store test data in fake DB
+        populateFakeDB()
 
         // fetch first reminderer from (fake) repo
         val idx = 4
-        val result = reminderRepo.getReminder(reminderDtoList[idx].id)
 
-        when (result) {
+        when (val result = reminderRepo.getReminder(reminderDtoList[idx].id)) {
             is Result.Success<*> -> {
 
                 // check all data records
@@ -184,15 +201,17 @@ class RemindersLocalRepositoryTest {
 
     // test repo interface method 'getReminder' - non-existing reminder
     @Test
-    @Suppress("UNCHECKED_CAST")
-    fun repository_getReminderReminderDoesNotExistsInDB() = runBlockingTest {
+    fun repository_getReminderReminderDoesNotExistsInDB() = testScope.runBlockingTest {
+
+        // store test data in fake DB
+        populateFakeDB()
 
         // attempt to fetch non-existing reminderer from (fake) repo
         val nonId = "this-index-does-not-exist-in-DB"
         when (val result = reminderRepo.getReminder(nonId)) {
             is Result.Error ->
                 assertThat(result.message,
-                    `is`("Reminder with ID $nonId not found in (fake) local storage."))
+                    `is`("Reminder not found!"))
             else -> {
                 assertThat("this should",
                     `is`("not happen (exception during getReminder)"))
@@ -205,13 +224,15 @@ class RemindersLocalRepositoryTest {
     // test repo interface method 'deleteAllReminders'
     @Test
     @Suppress("UNCHECKED_CAST")
-    fun repository_deleteAllReminders() = runBlockingTest {
+    fun repository_deleteAllReminders() = testScope.runBlockingTest {
+
+        // store test data in fake DB
+        populateFakeDB()
 
         // purge all items from (fake) repo, the read all reminders
         reminderRepo.deleteAllReminders()
-        val result = reminderRepo.getReminders()
 
-        when (result) {
+        when (val result = reminderRepo.getReminders()) {
             is Result.Success<*> -> {
                 assertThat((result.data as List<ReminderDTO>).size, `is`(0))
             }
@@ -225,13 +246,15 @@ class RemindersLocalRepositoryTest {
     // test repo interface method 'saveReminder'
     @Test
     @Suppress("UNCHECKED_CAST")
-    fun repository_saveReminder() = runBlockingTest {
+    fun repository_saveReminder() = testScope.runBlockingTest {
+
+        // store test data in fake DB
+        populateFakeDB()
 
         // save new reminder to (fake) repo, then read it back
         reminderRepo.saveReminder(newReminderDTO)
-        val result = reminderRepo.getReminder(newReminderDTO.id)
 
-        when (result) {
+        when (val result = reminderRepo.getReminder(newReminderDTO.id)) {
             is Result.Success<*> -> {
 
                 // check the read back data record
