@@ -1,5 +1,6 @@
 package com.udacity.project4
 
+import android.app.Activity
 import android.app.Application
 import android.view.View
 import androidx.test.core.app.ActivityScenario
@@ -10,7 +11,6 @@ import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.IdlingRegistry
 import androidx.test.espresso.UiController
 import androidx.test.espresso.ViewAction
-import androidx.test.espresso.action.ViewActions
 import androidx.test.espresso.action.ViewActions.*
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.*
@@ -28,6 +28,7 @@ import com.udacity.project4.locationreminders.data.local.RemindersLocalRepositor
 import com.udacity.project4.locationreminders.reminderslist.RemindersListViewModel
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.util.DataBindingIdlingResource
+import com.udacity.project4.util.ToastMatcher.Companion.onToast
 import com.udacity.project4.util.monitorActivity
 import com.udacity.project4.utils.EspressoIdlingResource
 import kotlinx.coroutines.runBlocking
@@ -38,16 +39,13 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.androidx.viewmodel.dsl.viewModel
-import org.koin.core.component.inject
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
 import org.koin.test.AutoCloseKoinTest
 import org.koin.test.get
+import org.koin.test.inject
 import java.util.*
-import androidx.test.uiautomator.UiSelector
-
-
 
 
 @RunWith(AndroidJUnit4::class)
@@ -86,6 +84,17 @@ class RemindersActivityTest: AutoCloseKoinTest() {
                 uiController.loopMainThreadForAtLeast(delay)
             }
         }
+    }
+
+
+    // get activity from a fragmentScenario created with launchInContainer
+    // adapted from answer of udacity question https://knowledge.udacity.com/questions/663647
+    private fun getActivity(activityScenario: ActivityScenario<RemindersActivity>): Activity? {
+        var activity: Activity? = null
+        activityScenario.onActivity {
+            activity = it
+        }
+        return activity
     }
 
 
@@ -171,7 +180,6 @@ class RemindersActivityTest: AutoCloseKoinTest() {
 
 
     // E2E testing... RemindersListFragment
-    @Suppress("UNCHECKED_CAST")
     @Test
     fun remindersActivityTest_fragmentReminders() = runBlocking {
 
@@ -223,7 +231,6 @@ class RemindersActivityTest: AutoCloseKoinTest() {
     )
 
     // E2E testing... SaveRemindersFragment
-    @Suppress("UNCHECKED_CAST")
     @Test
     fun remindersActivityTest_fragmentSaveReminder() = runBlocking {
 
@@ -269,6 +276,10 @@ class RemindersActivityTest: AutoCloseKoinTest() {
         onView(withId(R.id.selectLocation)).perform(click())
         onView(withId(R.id.clSelectLocationFragment)).check((matches(isDisplayed())))
 
+        // there should be a user prompt (snackBar)
+        onView(withId(com.google.android.material.R.id.snackbar_text))
+            .check(matches(withText(R.string.map_user_prompt)))
+
 //        // allow foreground access to location data (map)
 //        val permissionSettings = device.wait(Until.findObject(
 //            By.res("com.android.permissioncontroller:id/permission_allow_foreground_only_button")
@@ -302,9 +313,50 @@ class RemindersActivityTest: AutoCloseKoinTest() {
 
     }
 
+    // LiveData: showErrorMessage (Toast)
+    @Test
+    fun setError_AddRemindersFirstMessageIsDisplayed() {
+
+        // startup with the RemindersActivity screen (fragment container)
+        //
+        // ... done manually here (as opposed to @get:Rule
+        //     so we get a chance to initialize the repo first (see above)
+        //
+        // ... need to launch the *activity* rather than the *fragment* to allow for navigation
+        //     to take place (as the activity holds the fragment container)
+        val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+
+        // monitor activityScenario for "idling" (used to flow control the espresso tests)
+        dataBindingIdlingResource.monitorActivity(activityScenario)
+
+        // verify that the remindersList fragment is in view
+        onView(withId(R.id.reminderssRecyclerView)).check((matches(isDisplayed())))
+
+        // WHEN...
+        // ... swiping down on an empty DB - this should display an error message/note (Toast)
+        onView(withId(R.id.refreshLayout)).perform(swipeDown())
+
+        // THEN the Toast should be displayed
+        // ... ref: answer to https://knowledge.udacity.com/questions/663647
+//        onView(withText(R.id.refreshLayout)).inRoot(
+//            RootMatchers.withDecorView(
+//                CoreMatchers.not(
+//                    CoreMatchers.`is`(getActivity(activityScenario)?.window?.decorView)
+//                )
+//            )
+//        )
+//            .check(matches(isDisplayed()))
+
+        onToast(R.id.refreshLayout).check(matches(isDisplayed()))
+
+
+        // make sure the activityScenario is closed before resetting the db
+        activityScenario.close()
+
+    }
+
 
     // E2E testing... SelectLocationFragment
-    @Suppress("UNCHECKED_CAST")
     @Test
     fun remindersActivityTest_fragmentSelectLocation() = runBlocking {
 
@@ -336,7 +388,7 @@ class RemindersActivityTest: AutoCloseKoinTest() {
 
         // select location (click wherever I am...)
        onView(withId(R.id.map)).perform(longClick())
-        
+
         // add location description
         val locationText = "I was here..."
         onView(withId(R.id.etLocationName)).perform(
