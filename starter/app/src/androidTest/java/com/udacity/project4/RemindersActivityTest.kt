@@ -98,6 +98,13 @@ class RemindersActivityTest: AutoCloseKoinTest() {
     }
 
 
+    // all permissions granted...
+    @get:Rule
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+        android.Manifest.permission.ACCESS_FINE_LOCATION,
+        android.Manifest.permission.ACCESS_NETWORK_STATE
+    )
+
     /**
      * As we use Koin as a Service Locator Library to develop our code, we'll also use Koin to test our code.
      * at this step we will initialize Koin related code to be able to use it in out testing.
@@ -223,12 +230,6 @@ class RemindersActivityTest: AutoCloseKoinTest() {
 
     }
 
-    // all permissions granted...
-    @get:Rule
-    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
-        android.Manifest.permission.ACCESS_FINE_LOCATION,
-        android.Manifest.permission.ACCESS_NETWORK_STATE
-    )
 
     // E2E testing... SaveRemindersFragment
     @Test
@@ -313,48 +314,6 @@ class RemindersActivityTest: AutoCloseKoinTest() {
 
     }
 
-    // LiveData: showErrorMessage (Toast)
-    @Test
-    fun setError_AddRemindersFirstMessageIsDisplayed() {
-
-        // startup with the RemindersActivity screen (fragment container)
-        //
-        // ... done manually here (as opposed to @get:Rule
-        //     so we get a chance to initialize the repo first (see above)
-        //
-        // ... need to launch the *activity* rather than the *fragment* to allow for navigation
-        //     to take place (as the activity holds the fragment container)
-        val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
-
-        // monitor activityScenario for "idling" (used to flow control the espresso tests)
-        dataBindingIdlingResource.monitorActivity(activityScenario)
-
-        // verify that the remindersList fragment is in view
-        onView(withId(R.id.reminderssRecyclerView)).check((matches(isDisplayed())))
-
-        // WHEN...
-        // ... swiping down on an empty DB - this should display an error message/note (Toast)
-        onView(withId(R.id.refreshLayout)).perform(swipeDown())
-
-        // THEN the Toast should be displayed
-        // ... ref: answer to https://knowledge.udacity.com/questions/663647
-//        onView(withText(R.id.refreshLayout)).inRoot(
-//            RootMatchers.withDecorView(
-//                CoreMatchers.not(
-//                    CoreMatchers.`is`(getActivity(activityScenario)?.window?.decorView)
-//                )
-//            )
-//        )
-//            .check(matches(isDisplayed()))
-
-        onToast(R.id.refreshLayout).check(matches(isDisplayed()))
-
-
-        // make sure the activityScenario is closed before resetting the db
-        activityScenario.close()
-
-    }
-
 
     // E2E testing... SelectLocationFragment
     @Test
@@ -399,8 +358,16 @@ class RemindersActivityTest: AutoCloseKoinTest() {
 
         onView(withId(R.id.etLocationName)).check(matches(withText(locationText)))
 
+        // wait a little... to avoid flakiness
+        // ... seems justified in some espresso situations, see: https://knowledge.udacity.com/questions/469208
+        onView(isRoot()).perform(waitFor(1000))
+
         // click on OK
         onView(withId(R.id.btnOk)).perform(click())
+
+        // wait a little... to avoid flakiness
+        // ... seems justified in some espresso situations, see: https://knowledge.udacity.com/questions/469208
+        onView(isRoot()).perform(waitFor(500))
 
         // check: are we back?
         onView(withId(R.id.clSaveReminderFragment)).check((matches(isDisplayed())))
@@ -408,6 +375,9 @@ class RemindersActivityTest: AutoCloseKoinTest() {
         // has the chosen location been saved?
         onView(withId(R.id.selectedLocation)).check(matches(withText(locationText)))
 
+        // wait a little... to avoid flakiness
+        // ... seems justified in some espresso situations, see: https://knowledge.udacity.com/questions/469208
+        //onView(isRoot()).perform(waitFor(500))
 
         // make sure the activityScenario is closed before resetting the db
         activityScenario.close()
@@ -443,19 +413,63 @@ class RemindersActivityTest: AutoCloseKoinTest() {
         val emailAccount = device.wait(Until.findObject(
             By.res("com.google.android.gms:id/credential_primary_label")
             //  .text("Frank Douvre")
-        ), 2000)
+        ), 3000)
 
         // click primary creds label
         emailAccount.click()
 
         // wait a little... to remove flakiness
-        onView(isRoot()).perform(waitFor(2000))
+        // ... seems justified in some espresso situations, see: https://knowledge.udacity.com/questions/469208
+        onView(isRoot()).perform(waitFor(1000))
 
         // verify that we have navigated to the remindersList fragment
         onView(withId(R.id.reminderssRecyclerView)).check((matches(isDisplayed())))
 
         // make sure the activityScenario is closed before resetting the db
         authenticationActivityScenario.close()
+
+    }
+
+
+    // LiveData: showErrorMessage (Toast)
+    @Test
+    fun setError_AddRemindersFirstMessageIsDisplayed() {
+
+        // startup with the RemindersActivity screen (fragment container)
+        //
+        // ... done manually here (as opposed to @get:Rule
+        //     so we get a chance to initialize the repo first (see above)
+        //
+        // ... need to launch the *activity* rather than the *fragment* to allow for navigation
+        //     to take place (as the activity holds the fragment container)
+        val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+
+        // monitor activityScenario for "idling" (used to flow control the espresso tests)
+        dataBindingIdlingResource.monitorActivity(activityScenario)
+
+        // verify that the remindersList fragment is in view
+        onView(withId(R.id.reminderssRecyclerView)).check((matches(isDisplayed())))
+
+        // WHEN...
+        // ... swiping down on an empty DB - this should display an error message/note (Toast)
+        onView(withId(R.id.refreshLayout)).perform(swipeDown())
+
+        // THEN the Toast should be displayed
+        // ... ref: answer to https://knowledge.udacity.com/questions/663647
+//        onView(withText(R.id.refreshLayout)).inRoot(
+//            RootMatchers.withDecorView(
+//                CoreMatchers.not(
+//                    CoreMatchers.`is`(getActivity(activityScenario)?.window?.decorView)
+//                )
+//            )
+//        )
+//            .check(matches(isDisplayed()))
+
+        onToast(R.id.refreshLayout).check(matches(isDisplayed()))
+
+
+        // make sure the activityScenario is closed before resetting the db
+        activityScenario.close()
 
     }
 
