@@ -70,6 +70,19 @@ class RemindersActivityTest: AutoCloseKoinTest() {
         device = UiDevice.getInstance(instrumentation)
     }
 
+    // introduce a short delay in test execution, after having clicked on user account (using
+    // UI Automator) --> need some time to pass, otherwise the test is flaky
+    // https://stackoverflow.com/questions/52818524/delay-test-in-espresso-android-without-freezing-main-thread
+    private fun waitFor(delay: Long): ViewAction {
+        return object : ViewAction {
+            override fun getConstraints(): Matcher<View> = isRoot()
+            override fun getDescription(): String = "wait for $delay milliseconds"
+            override fun perform(uiController: UiController, v: View?) {
+                uiController.loopMainThreadForAtLeast(delay)
+            }
+        }
+    }
+
 
     /**
      * As we use Koin as a Service Locator Library to develop our code, we'll also use Koin to test our code.
@@ -240,8 +253,8 @@ class RemindersActivityTest: AutoCloseKoinTest() {
         // fill out the form...
         onView(withId(R.id.reminderTitle)).perform(clearText(), typeText("Have an espresso..."))
         onView(withId(R.id.reminderTitle)).check(matches(withText("Have an espresso...")))
-        onView(withId(R.id.reminderDescription)).perform(clearText(), typeText("Have an espresso..."))
-        onView(withId(R.id.reminderDescription)).check(matches(withText("Have an espresso...")))
+        onView(withId(R.id.reminderDescription)).perform(clearText(), typeText("While we are testing..."))
+        onView(withId(R.id.reminderDescription)).check(matches(withText("While we are testing...")))
 
         // check location information
         onView(withId(R.id.selectedLocation)).check(matches(withText("Espresso test location")))
@@ -252,10 +265,12 @@ class RemindersActivityTest: AutoCloseKoinTest() {
         onView(withId(R.id.clSelectLocationFragment)).check((matches(isDisplayed())))
 
 //        // allow foreground access to location data (map)
-//        val permissionSettings = device.findObject(UiSelector()
-//            .resourceId("com.android.permissioncontroller:id/permission_allow_foreground_only_button")
-//            //.text("While using the app")
-//        )
+//        val permissionSettings = device.wait(Until.findObject(
+//            By.res("com.android.permissioncontroller:id/permission_allow_foreground_only_button")
+//            //  .text("While using the app")
+//        ), 2000)
+//
+//        // click primary creds label
 //        permissionSettings.click()
 //
 //        // wait a little... to allow user to give permission
@@ -283,19 +298,6 @@ class RemindersActivityTest: AutoCloseKoinTest() {
     }
 
 
-    // introduce a short delay in test execution, after having clicked on user account (using
-    // UI Automator) --> need some time to pass, otherwise the test is flaky
-    // https://stackoverflow.com/questions/52818524/delay-test-in-espresso-android-without-freezing-main-thread
-    private fun waitFor(delay: Long): ViewAction {
-        return object : ViewAction {
-            override fun getConstraints(): Matcher<View> = isRoot()
-            override fun getDescription(): String = "wait for $delay milliseconds"
-            override fun perform(uiController: UiController, v: View?) {
-                uiController.loopMainThreadForAtLeast(delay)
-            }
-        }
-    }
-
     // E2E testing... AuthenticationActivity
     @Test
     fun remindersActivityTest_loginActivity() = runBlocking {
@@ -321,11 +323,12 @@ class RemindersActivityTest: AutoCloseKoinTest() {
         loginBtn.perform(click())
 
         // click on the user provided email account
-        // val emailAccount = device.wait(Until.findObject(By.text("Frank Douvre")), 2000)
-        val emailAccount = device.findObject(
+        val emailAccount = device.wait(Until.findObject(
             By.res("com.google.android.gms:id/credential_primary_label")
-              //  .text("Frank Douvre")
-        )
+            //  .text("Frank Douvre")
+        ), 2000)
+
+        // click primary creds label
         emailAccount.click()
 
         // wait a little... to remove flakiness
