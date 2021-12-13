@@ -13,6 +13,7 @@ import androidx.test.espresso.UiController
 import androidx.test.espresso.ViewAction
 import androidx.test.espresso.action.ViewActions.*
 import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.matcher.RootMatchers
 import androidx.test.espresso.matcher.ViewMatchers.*
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
@@ -28,10 +29,10 @@ import com.udacity.project4.locationreminders.data.local.RemindersLocalRepositor
 import com.udacity.project4.locationreminders.reminderslist.RemindersListViewModel
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.util.DataBindingIdlingResource
-import com.udacity.project4.util.ToastMatcher.Companion.onToast
 import com.udacity.project4.util.monitorActivity
 import com.udacity.project4.utils.EspressoIdlingResource
 import kotlinx.coroutines.runBlocking
+import org.hamcrest.CoreMatchers
 import org.hamcrest.Matcher
 import org.junit.After
 import org.junit.Before
@@ -456,17 +457,15 @@ class RemindersActivityTest: AutoCloseKoinTest() {
 
         // THEN the Toast should be displayed
         // ... ref: answer to https://knowledge.udacity.com/questions/663647
-//        onView(withText(R.id.refreshLayout)).inRoot(
-//            RootMatchers.withDecorView(
-//                CoreMatchers.not(
-//                    CoreMatchers.`is`(getActivity(activityScenario)?.window?.decorView)
-//                )
-//            )
-//        )
-//            .check(matches(isDisplayed()))
-
-        onToast(R.id.refreshLayout).check(matches(isDisplayed()))
-
+        val daErrorText = getActivity(activityScenario)?.getString(R.string.error_add_reminders)
+        onView(withText(daErrorText)).inRoot(
+            RootMatchers.withDecorView(
+                CoreMatchers.not(
+                    CoreMatchers.`is`(getActivity(activityScenario)?.window?.decorView)
+                )
+            )
+        )
+            .check(matches(isDisplayed()))
 
         // make sure the activityScenario is closed before resetting the db
         activityScenario.close()
