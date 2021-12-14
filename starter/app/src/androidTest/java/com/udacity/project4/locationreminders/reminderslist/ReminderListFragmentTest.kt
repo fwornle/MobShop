@@ -24,8 +24,6 @@ import com.udacity.project4.locationreminders.savereminder.SaveReminderFragmentD
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.verify
 
 import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
@@ -33,6 +31,7 @@ import com.udacity.project4.locationreminders.data.local.FakeDataSource
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.util.DataBindingIdlingResource
 import com.udacity.project4.util.monitorFragment
+import org.hamcrest.core.IsEqual
 import org.junit.Before
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.stopKoin
@@ -40,6 +39,7 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 import org.koin.test.AutoCloseKoinTest
+import org.mockito.Mockito.*
 
 import java.util.*
 
@@ -154,7 +154,9 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
             reminderListFragementScenario as FragmentScenario<Fragment>)
 
         // attach the navController (for navigation tests)
+        // ... configure mock to return 'true' on popBackStack
         navController = mock(NavController::class.java)
+        `when`(navController.popBackStack()).thenReturn(true)
         reminderListFragementScenario.onFragment {
             Navigation.setViewNavController(it.view!!, navController)
         }
@@ -280,6 +282,11 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
         //       ... which triggers 'findNavController().popBackStack()' (see: the implementation
         //       of the 'navigationCommand' liveData observer in BaseFragment.kt)
         verify(navController).popBackStack()
+
+//        assertThat(
+//            "popBackStack() triggered by the SAVE button - should take us back to ReminderListFragment",
+//            navController.currentDestination?.id, IsEqual(R.id.reminderListFragment)
+//        )
 
     }
 
