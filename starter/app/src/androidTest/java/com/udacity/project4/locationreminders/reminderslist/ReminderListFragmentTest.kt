@@ -24,8 +24,6 @@ import com.udacity.project4.locationreminders.savereminder.SaveReminderFragmentD
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.verify
 
 import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
@@ -40,6 +38,7 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 import org.koin.test.AutoCloseKoinTest
+import org.mockito.Mockito.*
 
 import java.util.*
 
@@ -60,7 +59,7 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
     // need to launch a fragment scenario to test it...
     // ... and configure it with the mock(ito)ed NavController
     private lateinit var reminderListFragementScenario: FragmentScenario<ReminderListFragment>
-    private lateinit var navController: NavController
+    private lateinit var testNavController: NavController
 
     // an idling resource that waits for Data Binding to have no pending bindings
     private val dataBindingIdlingResource = DataBindingIdlingResource()
@@ -154,9 +153,11 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
             reminderListFragementScenario as FragmentScenario<Fragment>)
 
         // attach the navController (for navigation tests)
-        navController = mock(NavController::class.java)
+        // ... configure mock to return 'true' on popBackStack
+        testNavController = mock(NavController::class.java)
+        `when`(testNavController.popBackStack()).thenReturn(true)
         reminderListFragementScenario.onFragment {
-            Navigation.setViewNavController(it.view!!, navController)
+            Navigation.setViewNavController(it.view!!, testNavController)
         }
 
     }  // setUp()
@@ -254,7 +255,7 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
         onView(withId(R.id.addReminderFAB)).perform(click())
 
         // THEN - verify that we navigate to the save reminder screen
-        verify(navController).navigate(
+        verify(testNavController).navigate(
             ReminderListFragmentDirections.toSaveReminder()
         )
     }
@@ -267,7 +268,7 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
         val saveReminderFragmentScenario = launchFragmentInContainer<SaveReminderFragment>(Bundle(), R.style.AppTheme)
         // ... (with the NavController hooked up to this container)
         saveReminderFragmentScenario.onFragment {
-            Navigation.setViewNavController(it.view!!, navController)
+            Navigation.setViewNavController(it.view!!, testNavController)
         }
 
         // WHEN clicking the "SAVE" button (FAB)
@@ -279,7 +280,12 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
         //       'NavigationCommand.Back' (in private method SaveReminderViewModel.saveReminder)
         //       ... which triggers 'findNavController().popBackStack()' (see: the implementation
         //       of the 'navigationCommand' liveData observer in BaseFragment.kt)
-        verify(navController).popBackStack()
+        verify(testNavController).popBackStack()
+
+//        assertThat(
+//            "popBackStack() triggered by the SAVE button - should take us back to ReminderListFragment",
+//            navController.currentDestination?.id, IsEqual(R.id.reminderListFragment)
+//        )
 
     }
 
@@ -291,14 +297,14 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
         val saveReminderScenario = launchFragmentInContainer<SaveReminderFragment>(Bundle(), R.style.AppTheme)
         // ... (with the NavController hooked up to this container)
         saveReminderScenario.onFragment {
-            Navigation.setViewNavController(it.view!!, navController)
+            Navigation.setViewNavController(it.view!!, testNavController)
         }
 
         // WHEN clicking on the location button (FAB)
         onView(withId(R.id.selectLocation)).perform(click())
 
         // THEN - verify that we navigate to the select location screen
-        verify(navController).navigate(
+        verify(testNavController).navigate(
             SaveReminderFragmentDirections.actionSaveReminderFragmentToSelectLocationFragment()
         )
 

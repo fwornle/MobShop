@@ -3,7 +3,7 @@
 buildscript {
 
     // forward declarations (needed in the buildscript dependencies)
-    ext.gradlePluginVersion = "7.0.3"
+    ext.gradlePluginVersion = '7.0.4'
     ext.kotlinVersion = "1.5.31"
     ext.navigationVersion = "2.3.5"
     ext.googleServicesVersion = "4.3.10"
