@@ -76,8 +76,10 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
     // all permissions granted...
     @get:Rule
     val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+        android.Manifest.permission.ACCESS_COARSE_LOCATION,
         android.Manifest.permission.ACCESS_FINE_LOCATION,
-        android.Manifest.permission.ACCESS_NETWORK_STATE
+        android.Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+        android.Manifest.permission.ACCESS_NETWORK_STATE,
     )
 
     @Before
@@ -285,16 +287,14 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
 
         // THEN - verify that we navigate back to the Reminder List screen (via popBackStack)
         //
-        // note: this is done by setting the observable liveData '_viewModel.navigationCommand' to
-        //       'NavigationCommand.Back' (in private method SaveReminderViewModel.saveReminder)
-        //       ... which triggers 'findNavController().popBackStack()' (see: the implementation
-        //       of the 'navigationCommand' liveData observer in BaseFragment.kt)
+        // Notes:
+        // - this is done by setting the observable liveData '_viewModel.navigationCommand' to
+        //   'NavigationCommand.Back' (in private method SaveReminderViewModel.saveReminder)
+        //   ... which triggers 'findNavController().popBackStack()' (see: the implementation
+        //   of the 'navigationCommand' liveData observer in BaseFragment.kt)
+        // - permissions need to be granted (see @get:Rule, above) to ensure SaveReminderFragment
+        //   actually calls upon the lambda function which, in turn, calls 'saveReminder'
         verify(testNavController).popBackStack()
-
-//        assertThat(
-//            "popBackStack() triggered by the SAVE button - should take us back to ReminderListFragment",
-//            navController.currentDestination?.id, IsEqual(R.id.reminderListFragment)
-//        )
 
     }
 
