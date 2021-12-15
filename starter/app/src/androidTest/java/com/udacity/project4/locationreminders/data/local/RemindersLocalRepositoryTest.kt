@@ -130,34 +130,25 @@ class RemindersLocalRepositoryTest {
     // ... use our own TestCoroutineScope (testScope, see above) to ensure that both the test and
     //     Room's DAO functions run in the same scope
     @Test
-    @Suppress("UNCHECKED_CAST")
-    fun repository_getReminders() = testScope.runBlockingTest {
+    fun repository_getReminders_success() = testScope.runBlockingTest {
 
         // store test data in fake DB
         populateFakeDB()
 
-        // fetch reminders from (fake) repo
+        // successfully fetch reminders from (fake) repo
+        val result = reminderRepo.getReminders() as Result.Success<List<ReminderDTO>>
 
-        when (val result = reminderRepo.getReminders()) {
-            is Result.Success<*> -> {
+        // check all data records
+        result.data.mapIndexed { idx, reminder ->
+            // check for equality
+            assertThat(reminder, CoreMatchers.notNullValue())
+            assertThat(reminder.id, `is`(reminderDtoList[idx].id))
+            assertThat(reminder.title, `is`(reminderDtoList[idx].title))
+            assertThat(reminder.description, `is`(reminderDtoList[idx].description))
+            assertThat(reminder.location, `is`(reminderDtoList[idx].location))
+            assertThat(reminder.latitude, `is`(reminderDtoList[idx].latitude))
+            assertThat(reminder.longitude, `is`(reminderDtoList[idx].longitude))
 
-                // check all data records
-                (result.data as List<ReminderDTO>).mapIndexed { idx, reminder ->
-                    // check for equality
-                    assertThat(reminder, CoreMatchers.notNullValue())
-                    assertThat(reminder.id, `is`(reminderDtoList[idx].id))
-                    assertThat(reminder.title, `is`(reminderDtoList[idx].title))
-                    assertThat(reminder.description, `is`(reminderDtoList[idx].description))
-                    assertThat(reminder.location, `is`(reminderDtoList[idx].location))
-                    assertThat(reminder.latitude, `is`(reminderDtoList[idx].latitude))
-                    assertThat(reminder.longitude, `is`(reminderDtoList[idx].longitude))
-
-                }
-
-            }
-            is Result.Error ->
-                assertThat(result.message,
-                    `is`("Could not fetch reminders from (fake) local storage."))
         }
 
     }
@@ -165,66 +156,49 @@ class RemindersLocalRepositoryTest {
 
     // test repo interface method 'getReminder' - existing reminder
     @Test
-    @Suppress("UNCHECKED_CAST")
-    fun repository_getReminderReminderExistsInDB() = testScope.runBlockingTest {
+    fun repository_getReminder_success() = testScope.runBlockingTest {
 
         // store test data in fake DB
         populateFakeDB()
 
-        // fetch first reminderer from (fake) repo
+        // fetch specific reminderer from (fake) repo
         val idx = 4
 
-        when (val result = reminderRepo.getReminder(reminderDtoList[idx].id)) {
-            is Result.Success<*> -> {
+        // successfully fetch reminders from (fake) repo
+        val result = reminderRepo
+            .getReminder(reminderDtoList[idx].id) as Result.Success<ReminderDTO>
+        val reminder = result.data
 
-                // check all data records
-                (result.data as ReminderDTO).let {
-                    // check for equality
-                    assertThat(it, CoreMatchers.notNullValue())
-                    assertThat(it.id, `is`(reminderDtoList[idx].id))
-                    assertThat(it.title, `is`(reminderDtoList[idx].title))
-                    assertThat(it.description, `is`(reminderDtoList[idx].description))
-                    assertThat(it.location, `is`(reminderDtoList[idx].location))
-                    assertThat(it.latitude, `is`(reminderDtoList[idx].latitude))
-                    assertThat(it.longitude, `is`(reminderDtoList[idx].longitude))
-
-                }
-
-            }
-            is Result.Error ->
-                assertThat(result.message,
-                    `is`("Reminder not found!"))
-        }
+        // check for equality
+        assertThat(reminder, CoreMatchers.notNullValue())
+        assertThat(reminder.id, `is`(reminderDtoList[idx].id))
+        assertThat(reminder.title, `is`(reminderDtoList[idx].title))
+        assertThat(reminder.description, `is`(reminderDtoList[idx].description))
+        assertThat(reminder.location, `is`(reminderDtoList[idx].location))
+        assertThat(reminder.latitude, `is`(reminderDtoList[idx].latitude))
+        assertThat(reminder.longitude, `is`(reminderDtoList[idx].longitude))
 
     }
 
-
     // test repo interface method 'getReminder' - non-existing reminder
     @Test
-    fun repository_getReminderReminderDoesNotExistsInDB() = testScope.runBlockingTest {
+    fun repository_getReminder_failure() = testScope.runBlockingTest {
 
         // store test data in fake DB
         populateFakeDB()
 
         // attempt to fetch non-existing reminderer from (fake) repo
         val nonId = "this-index-does-not-exist-in-DB"
-        when (val result = reminderRepo.getReminder(nonId)) {
-            is Result.Error ->
-                assertThat(result.message,
-                    `is`("Reminder not found!"))
-            else -> {
-                assertThat("this should",
-                    `is`("not happen (exception during getReminder)"))
-            }
-        }
+        val result = reminderRepo.getReminder(nonId) as Result.Error
+
+        assertThat(result.message, `is`("Reminder not found!"))
 
     }
 
 
     // test repo interface method 'deleteAllReminders'
     @Test
-    @Suppress("UNCHECKED_CAST")
-    fun repository_deleteAllReminders() = testScope.runBlockingTest {
+    fun repository_deleteAllReminders_success() = testScope.runBlockingTest {
 
         // store test data in fake DB
         populateFakeDB()
@@ -232,21 +206,18 @@ class RemindersLocalRepositoryTest {
         // purge all items from (fake) repo, the read all reminders
         reminderRepo.deleteAllReminders()
 
-        when (val result = reminderRepo.getReminders()) {
-            is Result.Success<*> -> {
-                assertThat((result.data as List<ReminderDTO>).size, `is`(0))
-            }
-            is Result.Error ->
-                assertThat("this should", `is`("not happen"))
-        }
+        // read back reminders
+        val result = reminderRepo.getReminders() as Result.Success<List<ReminderDTO>>
+
+        // should be empty
+        assertThat(result.data.size, `is`(0))
 
     }
 
 
-    // test repo interface method 'saveReminder'
+    // test repo interface method 'saveReminder' - successful
     @Test
-    @Suppress("UNCHECKED_CAST")
-    fun repository_saveReminder() = testScope.runBlockingTest {
+    fun repository_saveReminder_success() = testScope.runBlockingTest {
 
         // store test data in fake DB
         populateFakeDB()
@@ -254,26 +225,18 @@ class RemindersLocalRepositoryTest {
         // save new reminder to (fake) repo, then read it back
         reminderRepo.saveReminder(newReminderDTO)
 
-        when (val result = reminderRepo.getReminder(newReminderDTO.id)) {
-            is Result.Success<*> -> {
+        val result = reminderRepo.getReminder(newReminderDTO.id) as Result.Success<ReminderDTO>
 
-                // check the read back data record
-                (result.data as ReminderDTO).let {
-                    // check for equality
-                    assertThat(it, CoreMatchers.notNullValue())
-                    assertThat(it.id, `is`(newReminderDTO.id))
-                    assertThat(it.title, `is`(newReminderDTO.title))
-                    assertThat(it.description, `is`(newReminderDTO.description))
-                    assertThat(it.location, `is`(newReminderDTO.location))
-                    assertThat(it.latitude, `is`(newReminderDTO.latitude))
-                    assertThat(it.longitude, `is`(newReminderDTO.longitude))
-
-                }
-
-            }
-            is Result.Error ->
-                assertThat(result.message,
-                    `is`("Reminder not found!"))
+        // check the read back data record
+        result.data.let {
+            // check for equality
+            assertThat(it, CoreMatchers.notNullValue())
+            assertThat(it.id, `is`(newReminderDTO.id))
+            assertThat(it.title, `is`(newReminderDTO.title))
+            assertThat(it.description, `is`(newReminderDTO.description))
+            assertThat(it.location, `is`(newReminderDTO.location))
+            assertThat(it.latitude, `is`(newReminderDTO.latitude))
+            assertThat(it.longitude, `is`(newReminderDTO.longitude))
         }
 
     }
