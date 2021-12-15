@@ -102,8 +102,10 @@ class RemindersActivityTest: AutoCloseKoinTest() {
     // all permissions granted...
     @get:Rule
     val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+        android.Manifest.permission.ACCESS_COARSE_LOCATION,
         android.Manifest.permission.ACCESS_FINE_LOCATION,
-        android.Manifest.permission.ACCESS_NETWORK_STATE
+        android.Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+        android.Manifest.permission.ACCESS_NETWORK_STATE,
     )
 
     /**

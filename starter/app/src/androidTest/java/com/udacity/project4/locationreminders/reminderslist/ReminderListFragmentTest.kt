@@ -18,6 +18,7 @@ import androidx.test.espresso.contrib.RecyclerViewActions.actionOnItemAtPosition
 import androidx.test.espresso.matcher.ViewMatchers.*
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
+import androidx.test.rule.GrantPermissionRule
 import com.udacity.project4.R
 import com.udacity.project4.locationreminders.savereminder.SaveReminderFragment
 import com.udacity.project4.locationreminders.savereminder.SaveReminderFragmentDirections
@@ -32,6 +33,7 @@ import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.util.DataBindingIdlingResource
 import com.udacity.project4.util.monitorFragment
 import org.junit.Before
+import org.junit.Rule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.stopKoin
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -70,6 +72,13 @@ class ReminderListFragmentTest: AutoCloseKoinTest() {
     //   @get: Rule
     //    val activityScenarioRule: ActivityScenarioRule<RemindersActivity> =
     //        ActivityScenarioRule(RemindersActivity::class.java)
+
+    // all permissions granted...
+    @get:Rule
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+        android.Manifest.permission.ACCESS_FINE_LOCATION,
+        android.Manifest.permission.ACCESS_NETWORK_STATE
+    )
 
     @Before
     fun setUp() {
