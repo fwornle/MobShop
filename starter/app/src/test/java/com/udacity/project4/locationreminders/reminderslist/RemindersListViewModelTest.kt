@@ -150,9 +150,47 @@ class RemindersListViewModelTest: AutoCloseKoinTest() {
 
     }
 
+    // LiveData: force error by setting shouldReturnError to true (fake data source)
+    @Test
+    fun `shouldReturnError - setting shouldReturnError to true should cause error when reading from DB`() {
+
+        mainCoroutineRule.runBlockingTest {
+
+            // GIVEN...
+            // ... a broken (fake) data source (to simulate a read error)
+            reminderRepo = FakeDataSource(null)
+
+            // ... and 'simulating an error when reading the reminders from the DB'
+            (reminderRepo as FakeDataSource).setReturnError(true)
+
+            // ... and a fresh viewModel with this data source injected (via constructor)
+            _viewModel = RemindersListViewModel(
+                ApplicationProvider.getApplicationContext(),
+                reminderRepo,
+            )
+
+            // WHEN calling function loadReminders
+            _viewModel.loadReminders()
+
+            // THEN...
+            // ... the observer of liveData showSnackBar is triggered (and value set to error message)
+            // ... the observer of liveData showNoData is triggered (and value set to true)
+            assertThat(
+                _viewModel.showSnackBar.getOrAwaitValue(),
+                equalTo("Test exception")
+            )
+            assertThat(
+                _viewModel.showNoData.getOrAwaitValue(),
+                equalTo(true)
+            )
+
+        }
+
+    }
+
     // test loading spinner
     @Test
-    fun loadingSpinner_appearsAndDisappears() {
+    fun `check_loading - loadingSpinner appears and disappears`() {
 
             // GIVEN...
             // ... some data in the (fake) data source

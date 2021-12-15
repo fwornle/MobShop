@@ -9,7 +9,21 @@ import java.lang.Exception
 // inject the reminders stored in this source via the constructor of the class
 class FakeDataSource(var reminders: MutableList<ReminderDTO>? = mutableListOf()) : ReminderDataSource {
 
+    // test for errors
+    private var shouldReturnError = false
+
+    // setter function for error (test) flag
+    fun setReturnError(value: Boolean) {
+        shouldReturnError = value
+    }
+
     override suspend fun getReminders(): Result<List<ReminderDTO>> {
+
+        // testing for errors...
+        if (shouldReturnError) {
+            return Result.Error("Test exception")
+        }
+
         // return the entire list of reminders from fake local data source... if any
         reminders?.let {
             return Result.Success(ArrayList(it))

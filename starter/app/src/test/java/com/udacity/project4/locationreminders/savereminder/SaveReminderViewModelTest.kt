@@ -243,8 +243,9 @@ class SaveReminderViewModelTest: AutoCloseKoinTest() {
 
     }
 
-
-    // test LiveData ------------------------------------------------------------
+    /* ******************************************************
+     * liveData testing
+     * ******************************************************/
 
     // LiveData: snackBarInt
     @Test
