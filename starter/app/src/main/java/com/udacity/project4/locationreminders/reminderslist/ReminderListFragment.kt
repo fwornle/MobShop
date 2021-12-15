@@ -20,6 +20,9 @@ import com.firebase.ui.auth.AuthUI
 import com.udacity.project4.authentication.AuthenticationActivity
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout.OnRefreshListener
+import com.udacity.project4.locationreminders.ReminderDescriptionActivity
+import com.udacity.project4.locationreminders.RemindersActivity
+import com.udacity.project4.utils.wrapEspressoIdlingResource
 
 
 class ReminderListFragment : BaseFragment() {
@@ -95,6 +98,16 @@ class ReminderListFragment : BaseFragment() {
 
     private fun setupRecyclerView() {
         val adapter = RemindersListAdapter {
+            // this lambda is the 'callback' function which gets called when clicking the reminder
+            // in the RecyclerView - it gets the ReminderDataItem of the clicked item as parameter
+
+            // create intent which starts activity ReminderDescriptionActivity, with extra data
+            // 'reminderDataItem'
+            val intent = ReminderDescriptionActivity.newIntent(requireContext(), it)
+            wrapEspressoIdlingResource {
+                startActivity(intent)
+            }
+
         }
 
         // setup the recycler view using the extension function
