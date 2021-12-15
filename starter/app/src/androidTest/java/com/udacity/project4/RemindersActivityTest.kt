@@ -235,6 +235,54 @@ class RemindersActivityTest: AutoCloseKoinTest() {
     }
 
 
+    // E2E testing... RemindersListFragment --> ReminderDetailsActivity
+    @Test
+    fun remindersActivityTest_displayReminderDetails() = runBlocking {
+
+        // add a reminder to the repository
+        repository.saveReminder(testReminder)
+
+        // startup with the Reminders screen
+        //
+        // ... done manually here (as opposed to @get:Rule
+        //     so we get a chance to initialize the repo first (see above)
+        //
+        // ... need to launch the *activity* rather than the *fragment* to allow for navigation
+        //     to take place (as the activity holds the fragment container)
+        val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+
+        // monitor activityScenario for "idling" (used to flow control the espresso tests)
+        dataBindingIdlingResource.monitorActivity(activityScenario)
+
+        // verify that the remindersList fragment is in view
+        onView(withId(R.id.reminderssRecyclerView)).check((matches(isDisplayed())))
+
+        // verify that the location reminder from the DB is displayed correctly
+        onView(withId(R.id.title)).check(matches(withText(testReminder.title)))
+
+        // click on the reminder to display details
+        onView(withId(R.id.title)).perform(click())
+
+        // verify that we have navigated to the ReminderDescription activity
+        onView(withId(R.id.clReminderDetails)).check((matches(isDisplayed())))
+
+        // verify that the reminder details are displayed correctly
+        onView(withId(R.id.tvTitleText)).check(matches(withText(testReminder.title)))
+        onView(withId(R.id.tvDescText)).check(matches(withText(testReminder.description)))
+        onView(withId(R.id.tvLocText)).check(matches(withText(testReminder.location)))
+
+        // click 'DISMISS' to back to the remindersList fragment
+        onView(withId(R.id.btDismiss)).perform(click())
+
+        // verify that we have navigated back to the remindersList fragment
+        onView(withId(R.id.reminderssRecyclerView)).check((matches(isDisplayed())))
+
+        // make sure the activityScenario is closed before resetting the db
+        activityScenario.close()
+
+    }
+
+
     // E2E testing... SaveRemindersFragment
     @Test
     fun remindersActivityTest_fragmentSaveReminder() = runBlocking {
