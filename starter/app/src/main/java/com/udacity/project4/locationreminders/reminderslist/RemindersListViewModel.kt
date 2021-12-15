@@ -26,7 +26,7 @@ class RemindersListViewModel(
     fun loadReminders() {
         showLoading.value = true
         viewModelScope.launch {
-            //interacting with the dataSource has to be through a coroutine
+            // interacting with the dataSource has to be through a coroutine
             val result = dataSource.getReminders()
             showLoading.postValue(false)
             when (result) {
@@ -46,7 +46,7 @@ class RemindersListViewModel(
                     remindersList.value = dataList
                 }
                 is Result.Error ->
-                    showSnackBar.value = result.message
+                    showSnackBar.value = result.message!!
             }
 
             //check if no data has to be shown
