@@ -18,6 +18,7 @@
     <string name="lat_long_snippet">Lat: %1$.5f, Long: %2$.5f</string>
     <string name="location_name">this location</string>
     <string name="permission_denied_explanation">You need to grant full (permanent) access to location in order to use geoFences.</string>
+    <string name="location_access_explanation">Location Reminder would like to access your location.</string>
     <string name="anonymous_place">A nice, anonymous place</string>
     <string name="settings">Settings</string>
     <string name="err_enter_title">Please enter title</string>
