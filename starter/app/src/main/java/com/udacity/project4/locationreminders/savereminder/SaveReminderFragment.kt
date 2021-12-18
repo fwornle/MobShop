@@ -2,7 +2,7 @@ package com.udacity.project4.locationreminders.savereminder
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.annotation.TargetApi
+import android.app.Activity
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.IntentSender
@@ -17,7 +17,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.databinding.DataBindingUtil
 import com.google.android.gms.common.api.ResolvableApiException
@@ -33,13 +32,11 @@ import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import org.koin.android.ext.android.inject
 import timber.log.Timber
+import com.google.android.gms.location.LocationServices
+
 
 @SuppressLint("UnspecifiedImmutableFlag")
 class SaveReminderFragment : BaseFragment() {
-
-    // flag to see, if this is running on Android Q or later (permission checking changed in Q)
-    private val runningQOrLater =
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
 
     // get the view model (from Koin) this time as a singleton to be shared with another fragment
     override val _viewModel: SaveReminderViewModel by inject()
@@ -50,8 +47,18 @@ class SaveReminderFragment : BaseFragment() {
     // permission checking request
     // ... need foreground and background access to user location information
     //     --> ask for multiple results (launcher w/h lambda which receives an array of results)
-    private lateinit var locationPermissionCheck: ActivityResultLauncher<Array<String>>
+    private lateinit var activityResultLauncherForLocationPermissionCheck: ActivityResultLauncher<Array<String>>
     private lateinit var permissionsToBeChecked: Array<String>
+
+    // register lambda for settings activity
+    private var resultLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            // check settings again, without resolution
+            checkDeviceLocationSettingsAndStartGeofence(false)
+        }
+    }
 
     // geoFencing
     private lateinit var geofencingClient: GeofencingClient
@@ -68,6 +75,7 @@ class SaveReminderFragment : BaseFragment() {
         // addGeofences() and removeGeofences().
         PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
     }
+
 
     // create fragment view
     override fun onCreateView(
@@ -88,8 +96,8 @@ class SaveReminderFragment : BaseFragment() {
         // ... see: https://developer.android.com/training/location/geofencing
         geofencingClient = LocationServices.getGeofencingClient(requireActivity())
 
-        // get access to location information when the app is in the background (geoFencing)
-        //registerLocationAccessPermissionChecks()
+        // install lambda function to be called when we return from the permission settings activity
+        registerActivityResultForLocationPermissionSettings()
 
         return binding.root
     }
@@ -132,132 +140,14 @@ class SaveReminderFragment : BaseFragment() {
     }
 
 
-    // use deprecated ActivityResult method
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_TURN_DEVICE_LOCATION_ON) {
-            checkDeviceLocationSettingsAndStartGeofence(false)
-        }
-    }
-
-
-    /*
-     * In all cases, we need to have the location permission.  On Android 10+ (Q) we need to have
-     * the background permission as well.
-     */
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
-    ) {
-        Timber.d("onRequestPermissionResult")
-
-        if (
-            grantResults.isEmpty() ||
-            grantResults[LOCATION_PERMISSION_INDEX] == PackageManager.PERMISSION_DENIED ||
-            (requestCode == REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION_RESULT_CODE &&
-                    grantResults[BACKGROUND_LOCATION_PERMISSION_INDEX] ==
-                    PackageManager.PERMISSION_DENIED))
-        {
-            // at least one of the required permission is currently denied
-            Snackbar.make(
-                binding.clSaveReminderFragment,
-                R.string.permission_denied_explanation,
-                Snackbar.LENGTH_INDEFINITE
-            )
-                .setAction(R.string.settings) {
-                    // Displays App settings screen.
-                    startActivity(Intent().apply {
-                        action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                        data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    })
-                }.show()
-        } else {
-            checkDeviceLocationSettingsAndStartGeofence()
-        }
-    }
-
-
-    /**
-     * Starts the permission check and Geofence process only if the Geofence associated with the
-     * current hint isn't yet active.
-     */
-    private fun checkPermissionsAndStartGeofencing() {
-
-        // if (_viewModel.geofenceIsActive()) return
-
-        if (foregroundAndBackgroundLocationPermissionApproved()) {
-            checkDeviceLocationSettingsAndStartGeofence()
-        } else {
-            requestForegroundAndBackgroundLocationPermissions()
-        }
-    }
-
-
-    /*
-     *  Determines whether the app has the appropriate permissions across Android 10+ and all other
-     *  Android versions.
-     */
-    @TargetApi(29)
-    private fun foregroundAndBackgroundLocationPermissionApproved(): Boolean {
-        val foregroundLocationApproved = (
-                PackageManager.PERMISSION_GRANTED ==
-                        ActivityCompat.checkSelfPermission(requireContext(),
-                            Manifest.permission.ACCESS_FINE_LOCATION))
-        val backgroundPermissionApproved =
-            if (runningQOrLater) {
-                PackageManager.PERMISSION_GRANTED ==
-                        ActivityCompat.checkSelfPermission(
-                            requireContext(), Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                        )
-            } else {
-                true
-            }
-        return foregroundLocationApproved && backgroundPermissionApproved
-    }
-
-
-    /*
-     *  Requests ACCESS_FINE_LOCATION and (on Android 10+ (Q) ACCESS_BACKGROUND_LOCATION.
-     */
-    @TargetApi(29)
-    private fun requestForegroundAndBackgroundLocationPermissions() {
-        if (foregroundAndBackgroundLocationPermissionApproved())
-            return
-
-        // ... if we're here, we need to request the permission
-        // this provides the result[LOCATION_PERMISSION_INDEX]
-        var permissionsArray = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
-
-        val resultCode = when {
-            runningQOrLater -> {
-                // this provides the result[BACKGROUND_LOCATION_PERMISSION_INDEX]
-                permissionsArray += Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION_RESULT_CODE
-            }
-            else -> REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE
-        }
-
-        Timber.d("Request permission to access location")
-        ActivityCompat.requestPermissions(
-            requireActivity(),
-            permissionsArray,
-            resultCode
-        )
-    }
-
-
-    // request access to user location when the app is in the background (geoFencing)
-    // ... see: https://developer.android.com/training/permissions/requesting
-    @TargetApi(29)
-    private fun registerLocationAccessPermissionChecks() {
+    // registration of lambda function to be called when the permission settings activity returns
+    private fun registerActivityResultForLocationPermissionSettings() {
 
         // assemble array of permissions - always ask for ACCESS_FINE_LOCATION permission
         permissionsToBeChecked = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
 
         // ... from Android API level "Q" on, this needs to be checked in addition to foreground
-        if (runningQOrLater) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             permissionsToBeChecked = arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_BACKGROUND_LOCATION,
@@ -272,9 +162,15 @@ class SaveReminderFragment : BaseFragment() {
         // https://developer.android.com/training/permissions/requesting#allow-system-manage-request-code
         // also see:
         // https://medium.com/codex/android-runtime-permissions-using-registerforactivityresult-68c4eb3c0b61
-        locationPermissionCheck = registerForActivityResult(
+        activityResultLauncherForLocationPermissionCheck = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         ) { permissions ->
+
+            // lambda, which is called when the permissions setting activity 'returns' a result
+            // ... replaces 'onRequestPermissionsResult'
+            Timber.d("lambda function which is called when there's an ActivityResult")
+
+            // evaluate the activity result (in this case --> activity: permission check)
 
             // start with assumption that all required permissions have been granted
             var locationPermissionGranted = true
@@ -289,7 +185,7 @@ class SaveReminderFragment : BaseFragment() {
 
                 true -> {
 
-                    // permissions already as needed --> continue with flow:
+                    // permissions are now as needed --> continue with flow:
                     // ... check if access to location is ON
                     checkDeviceLocationSettingsAndStartGeofence(false)
 
@@ -297,18 +193,145 @@ class SaveReminderFragment : BaseFragment() {
 
                 else -> {
 
-                    // permissions currently not granted --> issue explanation as to why we need
-                    // this permission (for geoFencing) and take user to settings
-                    // ????
-                    checkDeviceLocationSettingsAndStartGeofence()
+                    // at least one of the required permission is currently denied
+                    // ... inform user & request them (again)
+                    Snackbar.make(
+                        binding.clSaveReminderFragment,
+                        R.string.permission_denied_explanation,
+                        Snackbar.LENGTH_INDEFINITE
+                    )
+                        .setAction(R.string.settings) {
 
-                }
+                            // this doesn't seem to work inside a fragment (activity only)
+                            checkDeviceLocationSettingsAndStartGeofence()
+
+//                            // displays app settings screen
+//                            startActivity(Intent().apply {
+//                            //resultLauncher.launch(Intent().apply {
+//                                action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+//                                data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
+//                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+//                            })
+
+                        }.show()
+
+                }  // when->else (permissions NOK)
 
             }  // when
 
         }  // activityResult (lambda)
 
-    }  // registerLocationAccessPermissionChecks
+    }
+
+
+//    /*
+//     * In all cases, we need to have the location permission.  On Android 10+ (Q) we need to have
+//     * the background permission as well.
+//     */
+//    override fun onRequestPermissionsResult(
+//        requestCode: Int,
+//        permissions: Array<String>,
+//        grantResults: IntArray
+//    ) {
+//        Timber.d("onRequestPermissionResult")
+//
+//        when {
+//            grantResults.isEmpty() ||
+//            grantResults[LOCATION_PERMISSION_INDEX] == PackageManager.PERMISSION_DENIED ||
+//            requestCode == REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION_RESULT_CODE &&
+//            grantResults[BACKGROUND_LOCATION_PERMISSION_INDEX] ==
+//            PackageManager.PERMISSION_DENIED -> {
+//
+//                // at least one of the required permission is currently denied
+//                Snackbar.make(
+//                    binding.clSaveReminderFragment,
+//                    R.string.permission_denied_explanation,
+//                    Snackbar.LENGTH_INDEFINITE
+//                )
+//                    .setAction(R.string.settings) {
+//                        // displays app settings screen
+//                        startActivity(
+//                            Intent().apply {
+//                                action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+//                                data = Uri.fromParts(
+//                                    "package",
+//                                    BuildConfig.APPLICATION_ID,
+//                                    null
+//                                )
+//                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+//                            }
+//                        )
+//                    }.show()
+//            }
+//
+//            else -> {
+//
+//                // required permissions are granted --> proceed in flow
+//                checkDeviceLocationSettingsAndStartGeofence()
+//
+//            }
+//
+//        }  // when
+//
+//    }  // onRequestPermissionsResult
+
+
+
+    // ENTRY POINT of the following flow (triggered by click on 'save'):
+    //
+    // (1) permission checking (foreground & background access to user location)
+    //     (1b) permission request
+    // (2) check if location is enabled (on the device)
+    // (3) set geoFence at reminder location
+    // (4) save reminder location in DB
+    private fun checkPermissionsAndStartGeofencing() {
+
+        if (foregroundAndBackgroundLocationPermissionApproved()) {
+            checkDeviceLocationSettingsAndStartGeofence()
+        } else {
+            requestForegroundAndBackgroundLocationPermissions()
+        }
+    }
+
+
+    /*
+     *  Determines whether the app has the appropriate permissions across Android 10+ and all other
+     *  Android versions.
+     */
+    private fun foregroundAndBackgroundLocationPermissionApproved(): Boolean {
+        val foregroundLocationApproved = (
+                PackageManager.PERMISSION_GRANTED ==
+                        ActivityCompat.checkSelfPermission(requireContext(),
+                            Manifest.permission.ACCESS_FINE_LOCATION))
+        val backgroundPermissionApproved =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                PackageManager.PERMISSION_GRANTED ==
+                        ActivityCompat.checkSelfPermission(
+                            requireContext(), Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                        )
+            } else {
+                true
+            }
+        return foregroundLocationApproved && backgroundPermissionApproved
+    }
+
+
+    /*
+     *  Requests ACCESS_FINE_LOCATION and (on Android 10+ (Q) ACCESS_BACKGROUND_LOCATION.
+     */
+    private fun requestForegroundAndBackgroundLocationPermissions() {
+
+        // skip this, if the permissions have already been approved
+        if (foregroundAndBackgroundLocationPermissionApproved())
+            return
+
+        // request access to user location when the app is in the background (geoFencing)
+        // ... see: https://developer.android.com/training/permissions/requesting
+        //
+        // launch permission check activity
+        activityResultLauncherForLocationPermissionCheck.launch(permissionsToBeChecked)
+
+    }
 
 
     // check if access to user location is currently enabled
@@ -323,26 +346,32 @@ class SaveReminderFragment : BaseFragment() {
     private fun checkDeviceLocationSettingsAndStartGeofence(resolve:Boolean = true) {
 
         // check current location settings - install callback handlers for 'location on/off'
+        // ... ref-1: https://developer.android.com/training/location/change-location-settings
+        // ... ref-2: https://developers.google.com/android/reference/com/google/android/gms/location/SettingsClient
         val locationRequest = LocationRequest.create().apply {
             priority = LocationRequest.PRIORITY_LOW_POWER
         }
-        val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
-        val settingsClient = LocationServices.getSettingsClient(requireActivity())
+        val builder = LocationSettingsRequest.Builder()
+            .addLocationRequest(locationRequest)
 
-        // trigger location settings check
-        val locationSettingsResponseTask = settingsClient.checkLocationSettings(builder.build())
+        // get gms SettingsClient
+        val client = LocationServices.getSettingsClient(requireActivity())
+
+        // trigger location settings check - creates a task that can be waited on
+        val task = client.checkLocationSettings(builder.build())
 
 
-        // register listener to handle the case that user location is currently OFF
-        locationSettingsResponseTask.addOnFailureListener { exception ->
+        // register listener to handle the case that user location settings are not satisfied
+        task.addOnFailureListener { exception ->
 
-            // typically (= 'resolve' is at it's default value 'true') we display the 'settings'
-            // activity (of the Android system) to allow the user to enable access to their location
-            if (resolve && exception is ResolvableApiException) {
+            // showing the user a dialog to fix incorrec settings
+            // ... this can be bypassed by setting 'resolve' to 'false' when calling this method
+            if (exception is ResolvableApiException && resolve) {
 
                 // resolution by user interaction (settings)
                 try {
-                    // give the user a chance to turn on device location
+                    // show the dialog by calling startResolutionForResult(),
+                    // and check the result in onActivityResult().
                     exception.startResolutionForResult(requireActivity(),
                         REQUEST_TURN_DEVICE_LOCATION_ON)
                 } catch (sendEx: IntentSender.SendIntentException) {
@@ -375,12 +404,10 @@ class SaveReminderFragment : BaseFragment() {
 
 
         // register listener to handle the case that user location is currently ON
-        locationSettingsResponseTask.addOnCompleteListener {
-            if (it.isSuccessful) {
-                // ready to add geofence
-                addGeofencingRequest()
-            }
-        }  // user location currently ON
+        task.addOnSuccessListener  {
+            // ready to add geofence
+            addGeofencingRequest()
+        }
 
     }
 
@@ -396,7 +423,7 @@ class SaveReminderFragment : BaseFragment() {
         ) == PackageManager.PERMISSION_GRANTED
 
         // also need to check for background access?
-        if (runningQOrLater) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             // yup
             permissionsGranted = permissionsGranted &&
                     ActivityCompat.checkSelfPermission(
@@ -406,11 +433,10 @@ class SaveReminderFragment : BaseFragment() {
         }
 
         // check permission status
-        if (permissionsGranted == false) {
+        if (!permissionsGranted) {
 
             // need permissions for foreground and background access to location
-            locationPermissionCheck.launch(permissionsToBeChecked)
-            //checkDeviceLocationSettingsAndStartGeofence()
+            requestForegroundAndBackgroundLocationPermissions()
 
         } else {
 
@@ -505,12 +531,22 @@ class SaveReminderFragment : BaseFragment() {
         internal const val ACTION_GEOFENCE_EVENT =
             "SaveReminderFragment.ACTION_GEOFENCE_EVENT"
         internal const val GEOFENCE_RADIUS_IN_METERS = 100F
+        const val REQUEST_TURN_DEVICE_LOCATION_ON = 29
+
+        // this is called from the activity...
+        // ... https://stackoverflow.com/questions/22602988/google-login-not-working-properly-on-android-fragment
+        fun myOnActivityResult(requestCode: Int) {
+            if (requestCode == REQUEST_TURN_DEVICE_LOCATION_ON) {
+                // we don't rely on the result code, but just check the location setting again
+                //checkDeviceLocationSettingsAndStartGeofence(false)
+            }
+        }
+
     }
 
 }
 
-private const val REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION_RESULT_CODE = 33
-private const val REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE = 34
-private const val REQUEST_TURN_DEVICE_LOCATION_ON = 29
-private const val LOCATION_PERMISSION_INDEX = 0
-private const val BACKGROUND_LOCATION_PERMISSION_INDEX = 1
+//private const val LOCATION_PERMISSION_INDEX = 0
+//private const val REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE = 34
+//private const val BACKGROUND_LOCATION_PERMISSION_INDEX = 1
+//private const val REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION_RESULT_CODE = 33
