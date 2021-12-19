@@ -54,51 +54,61 @@ class GeofenceTransitionsJobIntentService : JobIntentService(), CoroutineScope {
     // fetch ID associated with triggering geoFence (coincides with location reminder ID in DB)
     private fun sendNotification(triggeringGeofences: List<Geofence>) {
 
-        // fetch the ID of the first geoFence in the list of possibly simultaneously
-        // triggered geoFences
-        val requestId = when {
-            triggeringGeofences.isNotEmpty() ->
-                triggeringGeofences[0].requestId
-            else -> {
+        // sanity check
+        when {
+
+            triggeringGeofences.isEmpty() -> {
                 Timber.e("Weird - received a geoFence event without triggerings --> not sending notification to user.")
                 return
             }
-        }
+            else -> {
 
-        // get the local repository instance
-        val remindersLocalRepository: ReminderDataSource by inject()
+                // everything normal (some triggered geoFences found)
+                // --> fetch data and send notification
 
-        // ... interaction to the repository has to be through a coroutine scope
-        CoroutineScope(coroutineContext).launch(SupervisorJob()) {
+                // loop over all triggered geoFences at this location
+                for (geoFenceItem in triggeringGeofences) {
 
-            // get the reminder with the request id
-            val result = remindersLocalRepository.getReminder(requestId)
+                    // get the local repository instance
+                    val remindersLocalRepository: ReminderDataSource by inject()
 
-            // location found in DB?
-            if (result is Result.Success<ReminderDTO>) {
+                    // ... interaction to the repository has to be through a coroutine scope
+                    CoroutineScope(coroutineContext).launch(SupervisorJob()) {
 
-                // yes --> fetch associated location reminder data
-                //         ... and send it down the notification channel
-                val reminderDTO = result.data
+                        // get the reminder with the request id
+                        val result = remindersLocalRepository.getReminder(geoFenceItem.requestId)
 
-                // send a notification to the user with the reminder details
-                // note: polymorphism
-                //       --> call-up parameter is a ReminderDataItem
-                //       --> implementation of sendNotificatino from NotificationUtils.kt is used
-                sendNotification(
-                    this@GeofenceTransitionsJobIntentService, ReminderDataItem(
-                        reminderDTO.title,
-                        reminderDTO.description,
-                        reminderDTO.location,
-                        reminderDTO.latitude,
-                        reminderDTO.longitude,
-                        reminderDTO.id
-                    )
-                )
+                        // location found in DB?
+                        if (result is Result.Success<ReminderDTO>) {
 
-            }  // if (location found in DB)
+                            // yes --> fetch associated location reminder data
+                            //         ... and send it down the notification channel
+                            val reminderDTO = result.data
 
-        }  // Coroutine scope
+                            // send a notification to the user with the reminder details
+                            // note: polymorphism
+                            //       --> call-up parameter is a ReminderDataItem
+                            //       --> implementation of sendNotificatino from NotificationUtils.kt is used
+                            sendNotification(
+                                this@GeofenceTransitionsJobIntentService, ReminderDataItem(
+                                    reminderDTO.title,
+                                    reminderDTO.description,
+                                    reminderDTO.location,
+                                    reminderDTO.latitude,
+                                    reminderDTO.longitude,
+                                    reminderDTO.id
+                                )
+                            )
+
+                        }  // if (location found in DB)
+
+                    }  // Coroutine scope
+
+                }  // loop over all geoFences at this location
+
+            }  // sanity check: normal case
+
+        }  // when
 
     }  // sendNotification
 
