@@ -38,13 +38,13 @@ task clean(type: Delete) {
 // Define versions in a single place
 ext {
     // Sdk and tools
-    // JetPack permission handling requireds API v24 and above.
+    // JetPack permission handling requires API v24 and above.
     minSdkVersion = 24
     targetSdkVersion = 31  // needs reduced to below 30 to allow Toast test to run  (see: https://knowledge.udacity.com/questions/608423)
     compileSdkVersion = 31
 
     // App dependencies
-    androidXVersion = '1.0.0'
+    activityVersion = '1.4.0'
     androidXTestCoreVersion = '1.4.0'
     androidXTestExtKotlinRunnerVersion = '1.1.3'
     androidXTestRulesVersion = '1.4.0'
@@ -72,7 +72,7 @@ ext {
     playServicesMapsVersion = '18.0.0'
     recyclerViewVersion = '1.3.0-alpha01'
     robolectricVersion = '4.7.2'
-    roomVersion = '2.3.0'
+    roomVersion = '2.4.0'
     timberVersion = '5.0.1'
     truthVersion = '0.44'
     uiAutomatorVersion = '2.2.0'

@@ -68,6 +68,8 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
+    implementation "org.jetbrains.kotlin:kotlin-reflect:1.6.0"
+
     // https://console.firebase.google.com/project/location-reminder-5a9b1/overview
     //
     // https://firebase.google.com/docs/android/setup
@@ -90,6 +92,10 @@ dependencies {
     implementation "androidx.constraintlayout:constraintlayout:$constraintVersion"
 
     implementation "com.google.code.gson:gson:$gsonVersion"
+
+    implementation "androidx.fragment:fragment-ktx:$fragmentVersion"
+    implementation "androidx.activity:activity-ktx:$activityVersion"
+
 
     // Architecture Components
     // Navigation dependencies
@@ -138,7 +144,7 @@ dependencies {
 
     // Test Orchestration
     androidTestImplementation('androidx.test:runner:1.4.0')
-    androidTestUtil('androidx.test:orchestrator:1.4.0')
+    androidTestUtil('androidx.test:orchestrator:1.4.1')
     androidTestImplementation('androidx.test.espresso:espresso-intents:3.4.0')
 
     // uiAutomator Testing
@@ -168,7 +174,7 @@ dependencies {
     debugImplementation "androidx.fragment:fragment-testing:$fragmentVersion"
     //implementation "androidx.fragment:fragment-testing:$fragmentVersion"
     implementation "androidx.test:core:$androidXTestCoreVersion"
-    implementation "androidx.fragment:fragment-ktx:$fragmentVersion"
+    //implementation "androidx.fragment:fragment-ktx:$fragmentVersion"
 
     androidTestImplementation("io.insert-koin:koin-test:$koinVersion") { exclude group: 'org.mockito' }
     androidTestImplementation "io.insert-koin:koin-test-junit4:$koinVersion"

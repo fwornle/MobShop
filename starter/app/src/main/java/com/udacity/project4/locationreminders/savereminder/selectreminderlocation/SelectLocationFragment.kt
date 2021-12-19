@@ -47,7 +47,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     private lateinit var binding: FragmentSelectLocationBinding
 
     // permissions (user location, background and foreground)
-    private lateinit var locationPermissionRequest: ActivityResultLauncher<Array<out String>>
+    private lateinit var locationPermissionRequest: ActivityResultLauncher<Array<String>>
 
     // map support
     private lateinit var map: GoogleMap
