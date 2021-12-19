@@ -9,6 +9,8 @@ import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.testutils.MainCoroutineRule
 import com.udacity.project4.locationreminders.testutils.getOrAwaitValue
 
+import com.udacity.project4.locationreminders.data.dto.Result
+
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runBlockingTest
 import org.hamcrest.MatcherAssert.assertThat
@@ -230,5 +232,29 @@ class RemindersListViewModelTest: AutoCloseKoinTest() {
             )
 
         }
+
+    // LiveData: force error by setting shouldReturnError to true (fake data source)
+    @Test
+    fun `shouldReturnError - setting shouldReturnError to true should fail a call to getReminder`() {
+
+        mainCoroutineRule.runBlockingTest {
+
+            // GIVEN...
+            // ... some data in the (fake) data source
+            reminderRepo = FakeDataSource(reminderDtoList)
+
+            // ... and 'simulating an error when reading the reminder from the DB'
+            (reminderRepo as FakeDataSource).setReturnError(true)
+
+            // WHEN trying to read
+            val result = reminderRepo.getReminder(reminderDtoList[0].id) as Result.Error
+
+            // THEN...
+            // ... a Result.Error should be returned with message "Test exception"
+            assertThat(result.message, equalTo("Test exception"))
+
+        }
+
+    }
 
 }

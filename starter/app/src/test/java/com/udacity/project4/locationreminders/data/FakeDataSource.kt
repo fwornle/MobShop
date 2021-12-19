@@ -39,6 +39,12 @@ class FakeDataSource(var reminders: MutableList<ReminderDTO>? = mutableListOf())
     }
 
     override suspend fun getReminder(id: String): Result<ReminderDTO> {
+
+        // testing for errors...
+        if (shouldReturnError) {
+            return Result.Error("Test exception")
+        }
+
         // fetch reminder associated with provided id
         reminders?.firstOrNull {it.id == id} ?.let {
             // found it
