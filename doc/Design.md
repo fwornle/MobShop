@@ -23,14 +23,21 @@ val dataSource: MobShopItems() {
 
 ```plantuml
 @startuml component
-actor client
+component activity_auth
+component activity_mobs
+component activity_mobList
+component activity_shop
+actor mobber
 node app
-database db
+database data
 
-db -> app
-app -> client
+mobber -> app
+data <-> app
+app -> activity_auth
+activity_auth <-> activity_mobs
+activity_mobs -> activity_mobList
+activity_mobList -> activity_shop
 @enduml
 ```
 
-![system undervie](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://github.com/fwornle/MobShop/blob/master/doc/test.puml)
-![system overview](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.github.com/anoff/plantbuddy/master/assets/overview.iuml)
+![workflow test](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/fwornle/MobShop/master/doc/puml/workflow.puml)
