@@ -1,6 +1,27 @@
-# Location Reminder
+# MobShop
 
-A Todo list app with location reminders that remind the user to do something when he reaches a specific location. The app will require the user to create an account and login to set and access reminders.
+A shopping list app for group ("mob") based shopping: share the items you wanna buy online, access 
+it from the individual handset of each group member. Only buy each item once... and, as such, avoid 
+having to eat spinach for weeks after the panicky last-minute Xmas shopping trip with your family.
+
+## Features:
+
+1. The app updates the list, as a shopping group member puts an item in their basket and ticks it 
+   off the list. 
+2. Where available, hints will be issued to quickly find an item in a "known" shop - this aims at
+   supporting husbands, who otherwise aimlessly wander around a shop, trying to find the lentils 
+   their wife told them to get.
+3. Multiple lists can be shared with each group (e.g. groceries, DIY, ...)
+   a. A list can be associated with one or more shops
+   b. Arriving in the vicinity of any of these shops, a notification is sent, reminding the user
+      that there's mob shopping to be done
+   c. This location reminder is cleared, if the list has zero items on it (as other members
+      of the shop mob may have already been able to buy everything)
+4. The user can be member of multiple groups (e.g. shop-for-Xmas, family-shopping, toms-party, ...)
+5. The user authenticates using an email/password or via a federated authentication process (OAUTH)
+6. Once near a shop, a reminder is sent with the remaining items on the corresponding shopping list.
+7. From the reminder, the list view can be opened, to allow the shopping to commence.
+
 
 ## Getting Started
 
@@ -42,34 +63,16 @@ Explain what each test does and why
 
 ```
 1.androidTest
-        //TODO: Students explain their testing here.
+        Instrumented tests for DAO, repository, fragment navigation and general end-2-end UI tests
 2. test
-        //TODO: Students explain their testing here.
+        Unit tests for the data source (repository) using a fake data source
 ```
 
 ## Project Instructions
-    1. Create a Login screen to ask users to login using an email address or a Google account.  Upon successful login, navigate the user to the Reminders screen.   If there is no account, the app should navigate to a Register screen.
-    2. Create a Register screen to allow a user to register using an email address or a Google account.
-    3. Create a screen that displays the reminders retrieved from local storage. If there are no reminders, display a   "No Data"  indicator.  If there are any errors, display an error message.
-    4. Create a screen that shows a map with the user's current location and asks the user to select a point of interest to create a reminder.
-    5. Create a screen to add a reminder when a user reaches the selected location.  Each reminder should include
-        a. title
-        b. description
-        c. selected location
-    6. Reminder data should be saved to local storage.
-    7. For each reminder, create a geofencing request in the background that fires up a notification when the user enters the geofencing area.
-    8. Provide testing for the ViewModels, Coroutines and LiveData objects.
-    9. Create a FakeDataSource to replace the Data Layer and test the app in isolation.
-    10. Use Espresso and Mockito to test each screen of the app:
-        a. Test DAO (Data Access Object) and Repository classes.
-        b. Add testing for the error messages.
-        c. Add End-To-End testing for the Fragments navigation.
 
-
-## Student Deliverables:
-
-1. APK file of the final project.
-2. Git Repository with the code.
+...
+later
+...
 
 ## Built With
 
