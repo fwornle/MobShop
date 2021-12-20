@@ -1,6 +1,5 @@
 package com.udacity.project4.locationreminders
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
@@ -8,9 +7,6 @@ import androidx.databinding.DataBindingUtil
 import androidx.navigation.findNavController
 import com.udacity.project4.R
 import com.udacity.project4.databinding.ActivityRemindersBinding
-import com.udacity.project4.locationreminders.savereminder.SaveReminderFragment
-import com.udacity.project4.locationreminders.savereminder.SaveReminderFragment.Companion.REQUEST_TURN_DEVICE_LOCATION_ON
-
 
 /**
  * The RemindersActivity that holds the reminders fragments

@@ -20,7 +20,7 @@
     <string name="full_location_permission_explanation">Full (permanent) location access needed to use geoFences.</string>
     <string name="full_location_permission_denied_consequence">No geoFences will be set. You can change this in settings.</string>
     <string name="fine_location_permission_denied_consequence">Map cannot show your location without access to it.</string>
-    <string name="location_access_explanation">Location Reminder needs location to be enabled to set geoFences.</string>
+    <string name="location_access_explanation">Location Reminder needs location to be enabled (geoFences). Activate in settings.</string>
     <string name="anonymous_place">A nice, anonymous place</string>
     <string name="settings">Settings</string>
     <string name="err_enter_title">Please enter title</string>

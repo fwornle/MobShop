@@ -2,6 +2,7 @@ package com.udacity.project4.locationreminders.savereminder
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.IntentSender
@@ -12,6 +13,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -48,6 +50,34 @@ class SaveReminderFragment : BaseFragment() {
 
     // register lambda for when the permissions CHECKING activity returns
     private lateinit var activityResultLauncherForLocationPermissionCheck: ActivityResultLauncher<String>
+
+    // lambda for contract 'StartIntentSenderForResult', which is used (with the PendingIntent
+    // 'ResolvableException') to resolve a 'resolvable exception' (...)
+    // ... see: https://stackoverflow.com/questions/65158308/deprecated-onactivityresult-in-androidx
+    private val resolutionForResult =
+        registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
+
+                activityResult ->
+
+            // check if the user has clicked on "No thanks" or "OK"
+            when(activityResult.resultCode) {
+
+                    Activity.RESULT_OK -> {
+                        // location settings now on --> continue in flow
+                        checkDeviceLocationSettingsAndStartGeofence()
+                    }
+
+                else -> {
+
+                    // user declined (location settings remains 'off')
+                    // --> re-check without resolution
+                    checkDeviceLocationSettingsAndStartGeofence(false)
+
+                }
+
+            }
+
+        }
 
     // geoFencing
     private lateinit var geofencingClient: GeofencingClient
@@ -253,7 +283,12 @@ class SaveReminderFragment : BaseFragment() {
             if (permissionsToBeGranted.isEmpty()) {
 
                 // all permissions have been checked/granted --> continue in flow
-                checkDeviceLocationSettingsAndStartGeofence()
+                // ... pass 'geoFencingOn' in as 'resolve' parameter --> avoid bugging the user
+                //     with repeated resolution prompts (when they have already consciously taken
+                //     an action that inhibits geoFencing - permissions or settings)
+                checkDeviceLocationSettingsAndStartGeofence(
+                    _viewModel.geoFencingOn.value ?: true
+                )
 
             } else {
 
@@ -348,33 +383,35 @@ class SaveReminderFragment : BaseFragment() {
 
                 // resolution by user interaction (settings)
                 try {
-                    // show the dialog by calling startResolutionForResult(),
-                    // and check the result in onActivityResult().
-                    exception.startResolutionForResult(requireActivity(),
-                        REQUEST_TURN_DEVICE_LOCATION_ON)
+
+                    // show dialog by calling startIntentSenderForResult with the resolution from
+                    // the exception (here: location settings 'off')
+                    val intentSenderRequest =
+                        IntentSenderRequest.Builder(exception.resolution).build()
+                    resolutionForResult.launch(intentSenderRequest)
+
                 } catch (sendEx: IntentSender.SendIntentException) {
+
+                    // exception --> issue debug message
                     Timber.d("Error getting location settings resolution: " + sendEx.message)
+
                 }
 
             } else {
 
-                // first time in, we issue an explanation as to why location access is needed
-                // (this is done by setting 'resolve' to 'false' when calling this method)
-                //
-                // ... once they have read this, the user needs to click on 'SETTINGS', which takes
-                //     them back to this method (= a one-time recursion) to display the system's
-                //     settings activity and let the user make a(n informed) choice
-                // inform user and take them to settings
+                // issue an explanation about the consequences and try again
                 Snackbar.make(
                     binding.clSaveReminderFragment,
                     R.string.location_access_explanation,
                     Snackbar.LENGTH_INDEFINITE
-                ).setAction(R.string.settings) {
+                ).setAction(R.string.ok) {
 
-                    // need permissions for foreground and background access to location
-                    checkDeviceLocationSettingsAndStartGeofence()
+                    // continue in flow (by-passing geoFencing)
+                    _viewModel.geoFencingOn.value = false
+                    checkPermissionsAndStartGeofencing()
 
                 }.show()
+
 
             }  // else: issue explanation, prior to taking the user to settings
 
@@ -504,7 +541,6 @@ class SaveReminderFragment : BaseFragment() {
         internal const val ACTION_GEOFENCE_EVENT =
             "SaveReminderFragment.ACTION_GEOFENCE_EVENT"
         internal const val GEOFENCE_RADIUS_IN_METERS = 100F
-        const val REQUEST_TURN_DEVICE_LOCATION_ON = 29
     }
 
 }
