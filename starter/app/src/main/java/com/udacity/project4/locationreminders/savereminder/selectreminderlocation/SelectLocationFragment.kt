@@ -332,7 +332,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
                     // --> inform user and send them to settings
                     Snackbar.make(
                         binding.clSelectLocationFragment,
-                        R.string.permission_denied_explanation,
+                        R.string.fine_location_permission_denied_consequence,
                         Snackbar.LENGTH_INDEFINITE
                     ).setAction(R.string.settings) {
                         startActivity(

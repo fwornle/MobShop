@@ -23,6 +23,14 @@ class SaveReminderViewModel(val app: Application, private val dataSource: Remind
     val latitude = MutableLiveData<Double?>()
     val longitude = MutableLiveData<Double?>()
 
+    // log the state of geoFencing
+    //
+    // note: nullable -> when the user changes the permissions from outside the app, they
+    //       necessarily need to put the app into the background. This calls onClear (see below)
+    //       which resets a possibly previously set geoFencingOn
+    val geoFencingOn = MutableLiveData<Boolean?>()
+
+
     /**
      * Clear the live data objects to start fresh next time the view model gets called
      */
@@ -32,6 +40,7 @@ class SaveReminderViewModel(val app: Application, private val dataSource: Remind
         reminderSelectedLocationStr.value = null
         latitude.value = null
         longitude.value = null
+        geoFencingOn.value = null
     }
 
     /**

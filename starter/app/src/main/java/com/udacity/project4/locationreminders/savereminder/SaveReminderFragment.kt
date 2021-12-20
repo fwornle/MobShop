@@ -2,22 +2,19 @@ package com.udacity.project4.locationreminders.savereminder
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
-import com.udacity.project4.BuildConfig
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
@@ -46,14 +43,11 @@ class SaveReminderFragment : BaseFragment() {
 
     // permission checking request
     // ... need foreground and background access to user location information
-    //     --> ask for multiple results (launcher w/h lambda which receives an array of results)
-    private lateinit var permissionsToBeChecked: Array<String>
+    private lateinit var permissionsToBeChecked: List<String>
+    private lateinit var permissionsToBeGranted: MutableList<String>
 
     // register lambda for when the permissions CHECKING activity returns
-    private lateinit var activityResultLauncherForLocationPermissionCheck: ActivityResultLauncher<Array<String>>
-
-    // register lambda for when the permissions SETTINGS activity returns
-    private lateinit var permissionSettingsActivityResultLauncher: ActivityResultLauncher<Intent>
+    private lateinit var activityResultLauncherForLocationPermissionCheck: ActivityResultLauncher<String>
 
     // geoFencing
     private lateinit var geofencingClient: GeofencingClient
@@ -91,13 +85,12 @@ class SaveReminderFragment : BaseFragment() {
         // ... see: https://developer.android.com/training/location/geofencing
         geofencingClient = LocationServices.getGeofencingClient(requireActivity())
 
-        // install lambda functions to be called upon return from activities launched by this app
+        // install lambda function to be called upon return from activities launched by this app
         registerActivityResultForLocationPermissionChecking()
-        registerActivityResultForPermissionsSettings()
-
 
         return binding.root
     }
+
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -117,6 +110,17 @@ class SaveReminderFragment : BaseFragment() {
         // clicking on the 'saveReminder' FAB...
         // ... installs the geofencing request and triggers the saving to DB
         binding.saveReminder.setOnClickListener {
+
+            // initialize data record to be written to DB
+            // ... if no better values have been provided by the user (taken from viewModel), this
+            //     is going to be the data record written to the DB
+            daReminder = ReminderDataItem(
+                _viewModel.reminderTitle.value ?: "mystery",
+                _viewModel.reminderDescription.value ?: "something happening here",
+                _viewModel.reminderSelectedLocationStr.value ?: "mystery location",
+                _viewModel.latitude.value ?: -1.0,
+                _viewModel.longitude.value ?: -1.0,
+            )
 
             // check if required permissions have already been granted to this app (required for
             // geoFencing: access to location information, even when the app is in the background)
@@ -141,15 +145,19 @@ class SaveReminderFragment : BaseFragment() {
     private fun registerActivityResultForLocationPermissionChecking() {
 
         // assemble array of permissions - always ask for ACCESS_FINE_LOCATION permission
-        permissionsToBeChecked = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+        permissionsToBeChecked = listOf(Manifest.permission.ACCESS_FINE_LOCATION)
 
         // ... from Android API level "Q" on, this needs to be checked in addition to foreground
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            permissionsToBeChecked = arrayOf(
+            permissionsToBeChecked = listOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_BACKGROUND_LOCATION,
             )
         }
+
+        // starting with a full list to be granted - ticked off one by one
+        permissionsToBeGranted = permissionsToBeChecked.toMutableList()
+
 
         // use RequestPermission contract to register a handler (lambda) for permission launcher
         // user location permission checker as recommended for fragments from androidx.fragment
@@ -160,53 +168,46 @@ class SaveReminderFragment : BaseFragment() {
         // also see:
         // https://medium.com/codex/android-runtime-permissions-using-registerforactivityresult-68c4eb3c0b61
         activityResultLauncherForLocationPermissionCheck = registerForActivityResult(
-            ActivityResultContracts.RequestMultiplePermissions()
+            ActivityResultContracts.RequestPermission()
         ) {
-                permissions ->
+                granted ->
 
             // lambda, which is called when the permissions setting activity 'returns' a result
             // ... replaces 'onRequestPermissionsResult'
-            Timber.d("lambda function which is called upon a Permission Check activity result.")
+            Timber.d("in lambda function which is called upon a Permission Check activity result.")
 
-            // evaluate the activity result (in this case --> activity: multi-permissions check)
+            // evaluate the activity result (in this case --> activity: single permission check)
 
-            // start with assumption that all required permissions have been granted
-            var locationPermissionGranted = true
-
-            // reset locationPermissionGranted, as soon as any of them has not been granted
-            permissions.entries.forEach {
-                locationPermissionGranted = locationPermissionGranted && it.value
-            }
 
             // continue with flow based on permission check result
-            when (locationPermissionGranted) {
+            when (granted) {
 
                 true -> {
 
-                    // permissions are now as needed --> continue with flow:
-                    // ... check if location access has been enabled on the phone
-                    checkDeviceLocationSettingsAndStartGeofence(false)
+                    // tick off permission from list of permissions to be checked
+                    permissionsToBeGranted.removeAt(0)
+
+                    // keep checking, until there's nothing more to be checked
+                    checkPermissionsAndStartGeofencing()
 
                 }
 
                 else -> {
 
                     // at least one of the required permission is currently denied
-                    // ... inform user & request them (again)
+                    // inform user about consequences and activate geoFence by-pass
                     Snackbar.make(
                         binding.clSaveReminderFragment,
-                        R.string.permission_denied_explanation,
+                        R.string.full_location_permission_denied_consequence,
                         Snackbar.LENGTH_INDEFINITE
                     )
-                        .setAction(R.string.settings) {
+                        .setAction(R.string.ok) {
 
-                            // displays app settings screen
-                            permissionSettingsActivityResultLauncher.launch(Intent().apply {
-                            //startActivity(Intent().apply {
-                                action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                                data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                            })
+                            // activate geoFence by-pass
+                            _viewModel.geoFencingOn.value = false
+
+                            // continue flow - (will now omit the geoFencing part)
+                            checkPermissionsAndStartGeofencing()
 
                         }.show()
 
@@ -216,26 +217,6 @@ class SaveReminderFragment : BaseFragment() {
 
         }  // activityResult (lambda)
 
-    }
-
-    // register lambda function which is called when the permissions setting activity returns
-    private fun registerActivityResultForPermissionsSettings() {
-
-        permissionSettingsActivityResultLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) {
-                result ->
-
-            // this lambda is called when the permissions settings activity returns
-            if (result.resultCode == Activity.RESULT_OK) {
-
-                // relaunch the permission check by calling the request function again (this also
-                // checks if the permissions have been set and takes the flow further...)
-                requestForegroundAndBackgroundLocationPermissions()
-
-            }
-
-        }
     }
 
 
@@ -249,63 +230,86 @@ class SaveReminderFragment : BaseFragment() {
     // (4) save reminder location in DB
     private fun checkPermissionsAndStartGeofencing() {
 
-        if (foregroundAndBackgroundLocationPermissionApproved()) {
-            checkDeviceLocationSettingsAndStartGeofence()
+        // respect the user's choices --> they didn't wanna share their location
+        if (_viewModel.geoFencingOn.value == false) {
+
+            // user doesn't wanna share necessary location info --> by-pass geoFencing
+            _viewModel.showToast.value =
+                "Not GeoFencing reminder ${daReminder.title} at ${daReminder.location}"
+
+            // store reminder in DB
+            // ... this also takes the user back to the ReminderListFragment
+            _viewModel.validateAndSaveReminder(daReminder)
+
         } else {
-            requestForegroundAndBackgroundLocationPermissions()
-        }
-    }
 
+            // geoFencing not ruled out (by the user, who doesn't wanna share their location)
 
-    // requested permissions (foreground and background access to location) granted?
-    private fun foregroundAndBackgroundLocationPermissionApproved(): Boolean {
+            //  Android 11 on, permissions need to be checked in an incremental way
+            // ... foreground access --> background access
+            // ... remove granted permissions from the array to be checked
+            //
+            // ultimately, we should return to here with no more permissions to be granted
+            if (permissionsToBeGranted.isEmpty()) {
 
-        // start with assumption that all required permissions have been granted
-        // ... innocent until proven guilty
-        var permissionsGranted = true
+                // all permissions have been checked/granted --> continue in flow
+                checkDeviceLocationSettingsAndStartGeofence()
 
-        // any missing permission invalidates the aggregated result
-        permissionsToBeChecked.forEach {
-            permissionsGranted = permissionsGranted && ActivityCompat.checkSelfPermission(
-                requireContext(),
-                it, // the permission string
-            ) == PackageManager.PERMISSION_GRANTED
-        }
+            } else {
 
-        // aggregated result
-        return permissionsGranted
+                // still some permissions missing --> fetch next permission
+                val daPermission = permissionsToBeGranted.first()
 
-    }
+                // check permission - possibly 'educate user' - request permission - continue flow
+                when {
 
+                    ContextCompat.checkSelfPermission(
+                        requireContext(),
+                        daPermission
+                    ) == PackageManager.PERMISSION_GRANTED -> {
+                        // keep checking until all required permissions have been granted
+                        Timber.i("Permission already granted: $daPermission")
 
-    /*
-     *  Requests ACCESS_FINE_LOCATION and (on Android 10+ (Q) ACCESS_BACKGROUND_LOCATION.
-     */
-    private fun requestForegroundAndBackgroundLocationPermissions() {
+                        // remove already granted permission
+                        permissionsToBeGranted.removeAt(0)
 
-        // skip this, if the permissions have already been approved
-        if (foregroundAndBackgroundLocationPermissionApproved())
-            return
+                        // keep going until we're through the entire list to be granted
+                        checkPermissionsAndStartGeofencing()
+                    }
 
-        // request access to user location when the app is in the background (geoFencing)
-        // ... see: https://developer.android.com/training/permissions/requesting
-        //
-        // launch permission check activity
-        // at least one of the required permission is currently denied
-        // ... inform user & request them
-        Snackbar.make(
-            binding.clSaveReminderFragment,
-            R.string.permission_denied_explanation,
-            Snackbar.LENGTH_INDEFINITE
-        )
-            .setAction(R.string.settings) {
+                    shouldShowRequestPermissionRationale(daPermission) -> {
+                        // in an educational UI, explain to the user why your app requires this
+                        // permission for a specific feature to behave as expected. In this UI,
+                        // include a "cancel" or "no thanks" button that allows the user to
+                        // continue using your app without granting the permission.
+                        Snackbar.make(
+                            binding.clSaveReminderFragment,
+                            R.string.full_location_permission_explanation,
+                            Snackbar.LENGTH_INDEFINITE
+                        )
+                            .setAction(R.string.settings) {
 
-                // displays app settings screen
-                activityResultLauncherForLocationPermissionCheck.launch(permissionsToBeChecked)
+                                // displays system dialog (settings) to invite the user to set the
+                                // right permissions
+                                // ... still have to request them one by one from Android 11 on
+                                activityResultLauncherForLocationPermissionCheck.launch(daPermission)
 
-            }.show()
+                            }.show()
+                    }
 
-    }
+                    else -> {
+                        // you can directly ask for the permission.
+                        // The registered ActivityResultCallback gets the result of this request.
+                        activityResultLauncherForLocationPermissionCheck.launch(daPermission)
+                    }
+
+                }  // when
+
+            }  // else: still permissions missing
+
+        }  // else: user doesn't wanna share their location (--> by-pass geoFencing)
+
+    }  // checkPermissionsAndStartGeofencing
 
 
     // check if access to user location is currently enabled
@@ -413,7 +417,7 @@ class SaveReminderFragment : BaseFragment() {
         if (!permissionsGranted) {
 
             // need permissions for foreground and background access to location
-            requestForegroundAndBackgroundLocationPermissions()
+            checkPermissionsAndStartGeofencing()
 
         } else {
 
@@ -421,15 +425,6 @@ class SaveReminderFragment : BaseFragment() {
             //
             // --> add geoFencing request to location
             Timber.i("Access to BACKGROUND location granted --> add geoFencing request")
-
-            // initialize data record to be written to DB
-            daReminder = ReminderDataItem(
-                _viewModel.reminderTitle.value ?: "mystery",
-                _viewModel.reminderDescription.value ?: "something happening here",
-                _viewModel.reminderSelectedLocationStr.value ?: "mystery location",
-                _viewModel.latitude.value ?: -1.0,
-                _viewModel.longitude.value ?: -1.0,
-            )
 
             // define geoFence perimeter in geoFencing object
             val geoFenceObj = Geofence.Builder()
@@ -504,15 +499,6 @@ class SaveReminderFragment : BaseFragment() {
     }  // checkPermissionsAndAddGeofencingRequest()
 
 
-//    // this is called from the activity...
-//    // ... https://stackoverflow.com/questions/22602988/google-login-not-working-properly-on-android-fragment
-//    fun myOnActivityResult(requestCode: Int) {
-//        if (requestCode == REQUEST_TURN_DEVICE_LOCATION_ON) {
-//            // we don't rely on the result code, but just check the location setting again
-//            checkDeviceLocationSettingsAndStartGeofence(false)
-//        }
-//    }
-
     // define internally used constants (PendingIntent ID)
     companion object {
         internal const val ACTION_GEOFENCE_EVENT =
@@ -523,7 +509,3 @@ class SaveReminderFragment : BaseFragment() {
 
 }
 
-//private const val LOCATION_PERMISSION_INDEX = 0
-//private const val REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE = 34
-//private const val BACKGROUND_LOCATION_PERMISSION_INDEX = 1
-//private const val REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION_RESULT_CODE = 33

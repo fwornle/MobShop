@@ -40,18 +40,4 @@ class RemindersActivity : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
-//    // !!!!!!!!!!!!!!!!!!!!!!!
-//    // redirect the gms "onActivityResult" from activity to fragment
-//    // ... see the answer to this question:
-//    // ... https://stackoverflow.com/questions/22602988/google-login-not-working-properly-on-android-fragment
-//    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-//        if (requestCode == REQUEST_TURN_DEVICE_LOCATION_ON) {
-//            // forward this to the fragment...
-//            val fragment: SaveReminderFragment =
-//                getSupportFragmentManager().findFragmentById(R.id.clSaveReminderFragment) as SaveReminderFragment
-//            fragment.myOnActivityResult(requestCode)
-//        } else {
-//            super.onActivityResult(requestCode, resultCode, data)
-//        }
-//    }
 }
